@@ -29,7 +29,7 @@ export default function Home() {
         {/* Description */}
         <p className="mt-8 max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
           Track job applications, visualize interview progress, capture learnings
-          from each round, and stay focused on what truly matters — your growth.
+          from each round, and stay focused on what truly matters — your growth
         </p>
 
         {/* Coming Soon */}
