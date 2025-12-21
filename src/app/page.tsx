@@ -34,7 +34,7 @@ export default function Home() {
 
         {/* Coming Soon */}
         <div className="mt-14 rounded-full border border-zinc-300 px-6 py-2 text-sm font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">
-          🚀 Coming Soon
+          🚀 Coming Soon I am grooot I am groot. I am groot. I am groot. I am groot. I am groot. I am groot. I am groot. I am groot. I am groot. I am groot.  I am groot. I am groot. I am groot.  
         </div>
       </main>
     </div>
