@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Header from "@/components/header";
+import { getUser } from "@/lib/backend/user";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,17 +19,18 @@ export const metadata: Metadata = {
   description: "Trajectory — your career path, visualized",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const userResult = await getUser();
   return (
-
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Header user={userResult.success === false ? null : userResult.data} />
         {children}
       </body>
     </html>
