@@ -24,17 +24,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const result = await getUser();
-  if (result.success === false) {
-    return "No Data Found";
-  }
+  const userResult = await getUser();
   return (
-
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
+        <Header user={userResult.success === false ? null : userResult.data} />
         {children}
       </body>
     </html>
