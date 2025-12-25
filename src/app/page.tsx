@@ -11,7 +11,7 @@ export default async function Home() {
 
 
         <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Trajectory
+          Trajectory.
         </h1>
 
 
