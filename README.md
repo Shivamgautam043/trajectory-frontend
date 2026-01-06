@@ -2,22 +2,39 @@
 
 **Trajectory — your career path, visualized.**
 
-Trajectory is a personal Applicant Tracking System (ATS) that helps users track job applications, interview rounds, and career progress through a clean, visual workflow.
+Trajectory is a personal Applicant Tracking System (ATS) that helps users manage and track job applications, interview rounds, and overall career progress through a clean and intuitive workflow.
 
-## Tech Stack
+This repository contains the **frontend** of the Trajectory platform.
+
+---
+
+## 🚀 Tech Stack
+
 - React
 - TypeScript
-- Vite
-- Tailwind CSS (planned)
+- Tailwind CSS
+- pnpm (package manager)
 
-## Features (Planned)
-- User authentication
-- Kanban-style job application tracking
-- Company & role management
-- Interview rounds & learning notes
-- Analytics dashboard
+> ⚠️ This project does **not** use Vite.
 
-## Getting Started
+---
+
+## ✨ Planned Features
+
+- 🔐 User authentication
+- 📋 Kanban-style job application tracking
+- 🏢 Company & role management
+- 🎯 Interview rounds tracking
+- 📝 Learning notes & reflections
+- 📊 Career analytics dashboard
+
+---
+
+## 📦 Getting Started
+
+### Prerequisites
+- Node.js (v18+ recommended)
+- pnpm installed globally
+
 ```bash
-npm install
-npm run dev
+npm install -g pnpm
