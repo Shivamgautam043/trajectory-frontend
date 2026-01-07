@@ -32,7 +32,7 @@ export function AddApplicationModal() {
 
     return (
         <>
-            {/* The Trigger Button */}
+          
             <button
                 onClick={() => setIsOpen(true)}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -40,7 +40,6 @@ export function AddApplicationModal() {
                 + Add Application
             </button>
 
-            {/* The Modal Overlay */}
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="w-full max-w-md overflow-hidden rounded-xl bg-white p-6 shadow-2xl dark:bg-zinc-900 ring-1 ring-zinc-200 dark:ring-zinc-800">
@@ -58,7 +57,7 @@ export function AddApplicationModal() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* Company Name */}
+                      
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Company Name
@@ -72,7 +71,7 @@ export function AddApplicationModal() {
                                 />
                             </div>
 
-                            {/* Role Title */}
+                   
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Role Title
@@ -86,7 +85,7 @@ export function AddApplicationModal() {
                                 />
                             </div>
 
-                            {/* Link */}
+                           
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Job Link (Optional)
@@ -100,7 +99,7 @@ export function AddApplicationModal() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                {/* Status */}
+                             
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                         Status
@@ -117,7 +116,7 @@ export function AddApplicationModal() {
                                     </select>
                                 </div>
 
-                                {/* Priority */}
+               
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                         Priority
@@ -134,7 +133,7 @@ export function AddApplicationModal() {
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
+                        
                             <div className="mt-6 flex justify-end gap-3">
                                 <button
                                     type="button"
