@@ -54,7 +54,6 @@ export async function getKanbanBoardData(userId: string): Promise<Result<z.infer
         return postgresManagerResult;
     }
 
-    // JOIN query to get Company Name along with Application details
     const query = `
     SELECT 
       a.id as application_id,
@@ -71,7 +70,6 @@ export async function getKanbanBoardData(userId: string): Promise<Result<z.infer
     ORDER BY a.updated_at DESC
   `;
 
-    // Assuming your execute accepts params as second argument: execute(query, params)
     const queryResult = await postgresManagerResult.data.execute(query, [userId]);
 
     if (!queryResult.success) {
@@ -79,8 +77,6 @@ export async function getKanbanBoardData(userId: string): Promise<Result<z.infer
     }
 
     const rows = (queryResult.data.rows ?? []) as unknown[];
-
-    // Safe Parse List
     const parsed = KanbanBoardResponseSchema.safeParse(rows);
     if (!parsed.success) {
         return errResult(new Error("Kanban schema validation failed: " + JSON.stringify(parsed.error.format())));
