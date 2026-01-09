@@ -162,3 +162,131 @@ export async function updateApplication(input: z.infer<typeof UpdateAppSchema>):
 
     return okResult({ success: true });
 }
+// ... imports from your existing setup (getPostgresDatabaseManager, etc)
+
+// --- 1. GET APPLICATION DETAILS ---
+
+// Schema for the return type
+const ApplicationDetailSchema = z.object({
+    application: z.object({
+        id: z.string(),
+        role_title: z.string(),
+        company_name: z.string(),
+        company_location: z.string().nullable(),
+        job_link: z.string().nullable(),
+        status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']),
+        priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).nullable(),
+        general_notes: z.string().nullable(),
+        applied_date: z.date(),
+        updated_at: z.date(),
+    }),
+    history: z.array(z.object({
+        id: z.string(),
+        new_status: z.string(),
+        notes: z.string().nullable(),
+        created_at: z.date(),
+    }))
+});
+
+export async function getApplicationDetails(userId: string, applicationId: string) {
+    const dbResult = await getPostgresDatabaseManager(null);
+    if (!dbResult.success) return dbResult;
+    const appQuery = `
+        SELECT 
+            a.id, a.role_title, c.name as company_name, c.location as company_location,
+            a.job_link, a.status, a.priority, a.general_notes, a.applied_date, a.updated_at
+        FROM applications a
+        JOIN companies c ON a.company_id = c.id
+        WHERE a.id = $1 AND a.user_id = $2
+        LIMIT 1;
+    `;
+    const appRes = await dbResult.data.execute(appQuery, [applicationId, userId]);
+    if (!appRes.success) return appRes;
+    if (appRes.data.rows.length === 0) return errResult(new Error("Application not found"));
+    const historyQuery = `
+        SELECT id, new_status, notes
+        FROM application_history 
+        WHERE job_application_id = $1;
+    `;
+    const histRes = await dbResult.data.execute(historyQuery, [applicationId]);
+    
+     if (!histRes.success) return histRes;
+    const rawData = {
+        application: appRes.data.rows[0],
+        history: histRes.data.rows || []
+    };
+
+    return okResult(rawData);
+}
+
+
+// --- 2. UPDATE APPLICATION ---
+
+// const UpdateAppInputSchema = z.object({
+//     application_id: z.string().uuid(),
+//     user_id: z.string().uuid(),
+//     role_title: z.string().optional(),
+//     job_link: z.string().optional().nullable(),
+//     general_notes: z.string().optional().nullable(),
+//     status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).optional(),
+//     priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
+// });
+
+// export async function updateApplication(input: z.infer<typeof UpdateAppInputSchema>) {
+//     const dbResult = await getPostgresDatabaseManager(null);
+//     if (!dbResult.success) return dbResult;
+
+//     const parsed = UpdateAppInputSchema.safeParse(input);
+//     if (!parsed.success) return errResult(new Error("Invalid input"));
+//     const data = parsed.data;
+
+//     // 1. If Status Changed -> Log History
+//     if (data.status) {
+//         const currentQuery = `SELECT status FROM applications WHERE id = $1 AND user_id = $2`;
+//         const currentRes = await dbResult.data.execute(currentQuery, [data.application_id, data.user_id]);
+        
+//         if (currentRes.success && currentRes.data.rows.length > 0) {
+//             const oldStatus = currentRes.data.rows[0].status;
+//             if (oldStatus !== data.status) {
+//                 const histQuery = `
+//                     INSERT INTO application_history (id, job_application_id, previous_status, new_status, notes)
+//                     VALUES (gen_random_uuid(), $1, $2, $3, 'Status updated via details page')
+//                 `;
+//                 await dbResult.data.execute(histQuery, [data.application_id, oldStatus, data.status]);
+//             }
+//         }
+//     }
+
+//     // 2. Update Fields (Only updates fields that are not undefined)
+//     // We use COALESCE to keep existing values if the input is undefined
+//     // Note: for strings, if we want to allow clearing them (setting to null), we need to handle that.
+//     // Here we assume undefined = no change.
+    
+//     const updateQuery = `
+//         UPDATE applications SET
+//             role_title = COALESCE($3, role_title),
+//             job_link = COALESCE($4, job_link),
+//             general_notes = COALESCE($5, general_notes),
+//             status = COALESCE($6, status),
+//             priority = COALESCE($7, priority),
+//             updated_at = CURRENT_TIMESTAMP
+//         WHERE id = $1 AND user_id = $2
+//     `;
+
+//     // Note: We pass 'undefined' as null to postgres parameter array usually, but COALESCE($x, col) works if $x is NULL.
+//     // So we need to ensure 'undefined' becomes 'null' in the array passed to execute.
+//     const params = [
+//         data.application_id,
+//         data.user_id,
+//         data.role_title ?? null,
+//         data.job_link ?? null,
+//         data.general_notes ?? null,
+//         data.status ?? null,
+//         data.priority ?? null
+//     ];
+
+//     const result = await dbResult.data.execute(updateQuery, params);
+//     if (!result.success) return result;
+
+//     return okResult({ success: true });
+// }

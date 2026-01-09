@@ -12,27 +12,38 @@ export function AddApplicationModal() {
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setIsLoading(true);
-
         const formData = new FormData(event.currentTarget);
+        const roleTitle = formData.get("roleTitle") as string;
+        const priority = formData.get("priority") as "HIGH" | "MEDIUM" | "LOW";
+        const status = formData.get("status") as
+            | "APPLIED"
+            | "INTERVIEWING"
+            | "OFFER"
+            | "REJECTED"
+            | "WITHDRAWN";
+
         const result = await addApplication({
             user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891",
             company_id: "ab64ef05-2f88-47e8-b081-2ce56e9a6405",
-            role_title: "fsf",
-            priority: "HIGH",
-            status: "APPLIED",
+            role_title: roleTitle,
+            priority,
+            status,
         });
 
         setIsLoading(false);
+
         if (result.success) {
             setIsOpen(false);
+            // event.currentTarget.reset();
         } else {
             alert("Error: " + result.err.message);
         }
     }
 
+
     return (
         <>
-          
+
             <button
                 onClick={() => setIsOpen(true)}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -57,7 +68,7 @@ export function AddApplicationModal() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                      
+
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Company Name
@@ -71,7 +82,7 @@ export function AddApplicationModal() {
                                 />
                             </div>
 
-                   
+
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Role Title
@@ -85,7 +96,7 @@ export function AddApplicationModal() {
                                 />
                             </div>
 
-                           
+
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Job Link (Optional)
@@ -99,7 +110,7 @@ export function AddApplicationModal() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                             
+
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                         Status
@@ -116,7 +127,7 @@ export function AddApplicationModal() {
                                     </select>
                                 </div>
 
-               
+
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                         Priority
@@ -133,7 +144,7 @@ export function AddApplicationModal() {
                                 </div>
                             </div>
 
-                        
+
                             <div className="mt-6 flex justify-end gap-3">
                                 <button
                                     type="button"
