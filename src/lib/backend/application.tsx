@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { getPostgresDatabaseManager } from "../../../submodules/submodule-database-manager-postgres/postgresDatabaseManager.server";
 import { Result, okResult, errResult } from "../../../submodules/submodule-database-manager-postgres/utilities/errorHandling";
+import { revalidatePath } from "next/cache";
 
 // ---------------------------------------------------------
 // ADD APPLICATION
@@ -18,7 +19,7 @@ const AddApplicationSchema = z.object({
     general_notes: z.string().optional()
 });
 
-export async function addApplication(input: z.infer<typeof AddApplicationSchema>): Promise<Result<{ application_id: string }>> {
+export async function addApplication(input: z.infer<typeof AddApplicationSchema>& { revalidatePath?: string }): Promise<Result<{ application_id: string }>> {
     const postgresManagerResult = await getPostgresDatabaseManager(null);
     if (!postgresManagerResult.success) return postgresManagerResult;
 
@@ -61,6 +62,9 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
 
     // We await this but don't fail the whole function if history logging fails (non-critical)
     await postgresManagerResult.data.execute(historyQuery, [appId, data.status]);
+     if (input.revalidatePath) {
+    revalidatePath(input.revalidatePath);
+  }
 
     return okResult({ application_id: appId });
 }
@@ -290,3 +294,88 @@ export async function getApplicationDetails(userId: string, applicationId: strin
 
 //     return okResult({ success: true });
 // }
+
+
+const AnalyticsDataSchema = z.object({
+  dailyTrend: z.array(z.object({
+    date: z.string(), // Format YYYY-MM-DD
+    count: z.number(),
+  })),
+  statusDistribution: z.array(z.object({
+    name: z.string(),
+    value: z.number(),
+    color: z.string(),
+  })),
+});
+
+export async function getAnalyticsData(
+  userId: string, 
+  startDate: Date, 
+  endDate: Date
+): Promise<Result<z.infer<typeof AnalyticsDataSchema>>> {
+  const dbResult = await getPostgresDatabaseManager(null);
+  if (!dbResult.success) return dbResult;
+
+  // 1. Get Daily Trend (Group by applied_date)
+  // We use ::date to ensure we ignore time components if they exist
+  const trendQuery = `
+    SELECT 
+      applied_date::text as date, 
+      COUNT(*)::int as count 
+    FROM applications 
+    WHERE user_id = $1 
+      AND applied_date >= $2 
+      AND applied_date <= $3
+    GROUP BY applied_date
+    ORDER BY applied_date ASC
+  `;
+
+  // 2. Get Status Distribution (Group by status)
+  const statusQuery = `
+    SELECT status, COUNT(*)::int as count 
+    FROM applications 
+    WHERE user_id = $1
+    GROUP BY status
+  `;
+
+  const [trendRes, statusRes] = await Promise.all([
+    dbResult.data.execute(trendQuery, [userId, startDate, endDate]),
+    dbResult.data.execute(statusQuery, [userId])
+  ]);
+
+  if (!trendRes.success) return trendRes;
+  if (!statusRes.success) return statusRes;
+
+  // --- Process Daily Trend (Fill in missing days with 0) ---
+  const rawTrend = trendRes.data.rows as { date: string; count: number }[];
+  const filledTrend = [];
+  
+  // Loop through every day in range to ensure the graph doesn't have gaps
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0];
+    const found = rawTrend.find(r => r.date === dateStr);
+    filledTrend.push({
+      date: dateStr,
+      count: found ? Number(found.count) : 0
+    });
+  }
+  const statusColors: Record<string, string> = {
+    'APPLIED': 'gray.5',  
+    'SHORTLISTED': 'violet.5',
+    'INTERVIEWING': 'blue.5',
+    'OFFER': 'green.5',
+    'REJECTED': 'red.5',
+    'WITHDRAWN': 'dark.3'
+  };
+
+  const formattedStatus = (statusRes.data.rows as { status: string; count: number }[]).map(row => ({
+    name: row.status.charAt(0) + row.status.slice(1).toLowerCase(), // Capitalize
+    value: Number(row.count),
+    color: statusColors[row.status] || 'gray.5'
+  }));
+
+  return okResult({
+    dailyTrend: filledTrend,
+    statusDistribution: formattedStatus
+  });
+}

@@ -2,12 +2,14 @@
 'use client'
 
 import { addApplication } from "@/lib/backend/application";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 
 export function AddApplicationModal() {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const pathname = usePathname();
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -28,6 +30,7 @@ export function AddApplicationModal() {
             role_title: roleTitle,
             priority,
             status,
+            revalidatePath: pathname
         });
 
         setIsLoading(false);

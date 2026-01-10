@@ -16,11 +16,7 @@ export default function Header({ user }: { user: User | null }) {
                         Trajectory
                     </span>
                 </div>
-                <div className="hidden md:flex items-center justify-center gap-8">
-                    <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Dashboard</span>
-                    <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Applications</span>
-                    <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Insights</span>
-                </div>
+               
             </div>
 
             {/* Right: Profile */}
