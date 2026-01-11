@@ -11,23 +11,15 @@ type Props = {
 
 export function ApplicationDetailsView({ app, history }: Props) {
     const [isSaving, setIsSaving] = useState(false);
-
-    // We use a simple form submission for updates.
-    // For a better UX, 'onBlur' saving for text areas is great.
-
     async function handleUpdate(formData: FormData) {
         setIsSaving(true);
-        // Append ID manually since it's not an input field
         formData.append("application_id", app.id);
-
         await updateApplicationAction(formData);
         setIsSaving(false);
     }
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            {/* --- LEFT COLUMN: Main Editor --- */}
             <div className="lg:col-span-2 space-y-6">
 
                 {/* Header Section */}

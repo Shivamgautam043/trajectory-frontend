@@ -1,25 +1,44 @@
 import { ApplicationList } from "@/components/ApplicationList";
-import { AddApplicationModal } from "@/components/ApplicationModal"; // Check your import path, in previous turn it was components/AddApplicationModal
+import { AddApplicationModal } from "@/components/ApplicationModal";
 import { DashboardStats } from "@/components/dashboardStats";
-import { AnalyticsSection } from "@/components/AnalyticsSection"; // Import the new component
-import { getDashboardStats, getKanbanBoardData } from "@/lib/backend/user";
+import { AnalyticsSection } from "@/components/AnalyticsSection";
+
+import { GoalTracker } from "@/components/GoalTracker";
+import { SpotlightSection } from "@/components/SpotlightSection";
+
+import { getDashboardStats, getKanbanBoardData} from "@/lib/backend/user";
 import { getAnalyticsData } from "@/lib/backend/application";
 
 
 export default async function Home() {
   const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891";
 
-  // Calculate Date Range (Last 7 Days)
+  // Date Range (Last 7 Days)
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setDate(endDate.getDate() - 7); // Go back 6 days + today = 7 days
+  startDate.setDate(endDate.getDate() - 7);
 
-  // Parallel Data Fetching
+  // Parallel Fetch
   const [statsResult, applicationsResult, analyticsResult] = await Promise.all([
     getDashboardStats(userId),
     getKanbanBoardData(userId),
     getAnalyticsData(userId, startDate, endDate)
   ]);
+
+  // --- Logic for New Components ---
+  
+  // 1. Calculate Goal Count (Find today's date in dailyTrend)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStats = analyticsResult.success 
+    ? analyticsResult.data.dailyTrend.find(d => d.date === todayStr)
+    : null;
+  const applicationsToday = todayStats ? todayStats.count : 0;
+
+  // 2. Filter Spotlight Apps (High Priority OR Interviewing)
+  const allApps = applicationsResult.success ? applicationsResult.data : [];
+  const spotlightApps = allApps.filter(app => 
+    app.priority === 'HIGH' || app.status === 'INTERVIEWING' || app.status === 'OFFER'
+  ).slice(0, 3); // Limit to top 3 to prevent overcrowding
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
@@ -32,27 +51,39 @@ export default async function Home() {
             </h1>
         </div>
 
-        {/* 1. Stats Cards */}
-        <div className="w-full max-w-5xl mx-auto mb-8">
-            {statsResult.success === true && (
-            <DashboardStats stats={statsResult.data} />
-            )}
-        </div>
+        {/* --- MAIN GRID LAYOUT --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-5xl mx-auto mb-12">
+            
+            {/* LEFT COLUMN (Span 2): Stats & Graphs */}
+            <div className="lg:col-span-2 space-y-8">
+                {/* 1. Stats Cards */}
+                {statsResult.success && <DashboardStats stats={statsResult.data} />}
+                
+                {/* 2. Analytics Graphs */}
+                {analyticsResult.success && (
+                    <AnalyticsSection 
+                        dailyTrend={analyticsResult.data.dailyTrend}
+                        statusDistribution={analyticsResult.data.statusDistribution}
+                    />
+                )}
+            </div>
 
-        {/* 2. NEW: Analytics Graphs */}
-        <div className="w-full max-w-5xl mx-auto mb-12">
-            {analyticsResult.success === true && (
-                <AnalyticsSection 
-                    dailyTrend={analyticsResult.data.dailyTrend}
-                    statusDistribution={analyticsResult.data.statusDistribution}
-                />
-            )}
+            {/* RIGHT COLUMN (Span 1): Goals & Activity */}
+            <div className="h-full flex flex-col">
+                {/* 3. Daily Goal Tracker */}
+                <GoalTracker count={applicationsToday} />
+
+               
+            </div>
         </div>
 
         {/* Divider */}
         <div className="my-8 h-px w-full max-w-5xl mx-auto bg-zinc-200 dark:bg-zinc-800" />
 
-        {/* 3. Recent Applications List */}
+        {/* 5. Spotlight Section (High Priority) */}
+        <SpotlightSection apps={spotlightApps} />
+
+        {/* 6. Recent Applications List */}
         <div className="w-full max-w-5xl mx-auto">
             <div className="flex w-full items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
