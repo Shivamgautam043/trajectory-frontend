@@ -36,22 +36,22 @@ export default async function Home() {
 
     return (
         <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
-            <main className="grid w-full grid-cols-1 place-items-start place-content-start px-12 py-16 text-center bg-white dark:bg-black">
+            <main className="grid w-full grid-cols-1 place-items-start place-content-start px-8 py-8 text-center bg-white dark:bg-black">
 
-                <div className="mb-8 w-full text-left max-w-5xl mx-auto">
+                <div className="mb-2 w-full text-left max-w-5xl mx-auto">
                     <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
                         Overview
                     </h1>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-5xl mx-auto mb-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-5xl mx-auto mb-4">
                     <div className="lg:col-span-2 space-y-8">
                         {statsResult.success && <DashboardStats stats={statsResult.data} />}
                         {analyticsResult.success && (
-                           <AnalyticsSection 
-                        dailyTrend={weeklyTrend} 
-                        statusDistribution={analyticsResult.data.statusDistribution}
-                    />
+                            <AnalyticsSection
+                                dailyTrend={weeklyTrend}
+                                statusDistribution={analyticsResult.data.statusDistribution}
+                            />
                         )}
                     </div>
 
@@ -59,7 +59,7 @@ export default async function Home() {
                         <GoalTracker count={applicationsToday} />
                     </div>
                 </div>
-                <div className="my-8 h-px w-full max-w-5xl mx-auto bg-zinc-200 dark:bg-zinc-800" />
+                <div className="my-4 h-px w-full max-w-5xl mx-auto bg-zinc-200 dark:bg-zinc-800" />
                 <SpotlightSection apps={spotlightApps} />
                 <div className="w-full max-w-5xl mx-auto">
                     <div className="flex w-full items-center justify-between mb-6">

@@ -1,20 +1,38 @@
 'use client';
 
-import { useState, useRef } from "react";
-import { ExternalLink, Clock, Save, Loader2 } from "lucide-react";
 import { updateApplication } from "@/lib/backend/application";
-import { toast } from "react-toastify";
-import { useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { RichTextEditor } from "@mantine/tiptap";
+import { Clock, ExternalLink, Loader2, Save } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useRef, useState } from "react";
+import { toast } from "react-toastify";
+
+type HistoryItem = {
+    id: string;
+    new_status: string;
+    notes: string | null;
+    changed_at: string;
+    interview_date: string;
+};
+
+type InterviewRound = {
+    id: string;
+    round_number: number;
+    round_type: string;
+    interview_date: string | null;
+    interviewer_name: string | null;
+    meeting_link: string | null;
+    result: 'PASSED' | 'FAILED' | 'PENDING' | 'SKIPPED';
+    personal_notes: string | null;
+    created_at: string;
+};
 
 type Props = {
     app: any;
-    history: any[];
+    history: HistoryItem[];
+    rounds: InterviewRound[];
 };
 
-export function ApplicationDetailsView({ app, history }: Props) {
+export function ApplicationDetailsView({ app, history, rounds }: Props) {
     const [isSaving, setIsSaving] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const pathname = usePathname();
@@ -42,32 +60,10 @@ export function ApplicationDetailsView({ app, history }: Props) {
         }
     }
 
-    // const editor = useEditor({
-    //     extensions: [StarterKit],
-    //     content: app.general_notes || "",
-    // });
-
     return (
         <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="relative lg:col-span-2 space-y-6">
-                <button
-                    type="button"
-                    onClick={() => formRef.current?.requestSubmit()}
-                    disabled={isSaving}
-                    className="top-4 right-4 flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 hover:shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                    {isSaving ? (
-                        <>
-                            <Loader2 size={16} className="animate-spin" />
-                            Saving...
-                        </>
-                    ) : (
-                        <>
-                            <Save size={16} />
-                            Save Changes
-                        </>
-                    )}
-                </button>
+
 
 
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -81,19 +77,15 @@ export function ApplicationDetailsView({ app, history }: Props) {
                         className="space-y-4"
                     >
 
-                        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        <h2 className="text-2xl font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-50">
                             {app.company_name}
                         </h2>
-
-
                         <input
                             name="role_title"
                             defaultValue={app.role_title}
-                            className="w-full bg-transparent text-3xl font-bold text-zinc-900 outline-none placeholder:text-zinc-300 dark:text-zinc-50"
+                            className="w-full bg-transparent text-3xl font-bold text-zinc-900 outline-none placeholder:text-zinc-300 dark:text-zinc-400"
                             placeholder="Role Title"
                         />
-
-
                         <div className="flex items-center gap-2">
                             <ExternalLink size={16} className="text-zinc-400" />
                             <input
@@ -107,24 +99,100 @@ export function ApplicationDetailsView({ app, history }: Props) {
                     </form>
                 </div>
 
-                {/* Notes Section */}
-                <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 h-[400px]">
+                <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                         General Notes
                     </h3>
-
                     <textarea
                         name="general_notes"
                         form="application-form"
                         defaultValue={app.general_notes || ""}
+                        style={{ height: 400 }}
                         className="h-full w-full resize-none bg-transparent text-zinc-700 outline-none dark:text-zinc-300 leading-relaxed"
                         placeholder="Jot down details about the company, interview prep, or thoughts..."
                     />
                 </div>
+
+                <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        Interview Rounds
+                    </h3>
+
+                    <div className="relative border-l border-zinc-200 pl-4 dark:border-zinc-800 space-y-6">
+                        {rounds.length === 0 && (
+                            <p className="text-xs text-zinc-500 italic">
+                                No interview rounds added yet
+                            </p>
+                        )}
+                        {rounds.map((round) => (
+                            <div key={round.id} className="relative">
+                                <div className="absolute -left-5.25 top-1 h-2.5 w-2.5 rounded-full bg-blue-500"></div>
+
+
+                                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-200">
+                                    {round.round_type.replace('_', ' ')}{" "}
+                                    <span className="text-xs text-zinc-500">
+                                        (Round {round.round_number})
+                                    </span>
+                                </p>
+
+
+                                <p className="text-xs text-zinc-500 mt-0.5">
+                                    Created on{" "}
+                                    {new Date(round.created_at).toLocaleDateString("en-IN")}
+                                </p>
+                                {round.interview_date && (
+                                    <p className="text-xs text-zinc-500 mt-0.5">
+                                        Round on{" "}
+                                        {new Date(round.interview_date).toLocaleDateString("en-IN")}
+                                    </p>
+                                )}
+
+                                <span
+                                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium
+                        ${round.result === 'PASSED' && 'bg-green-100 text-green-700'}
+                        ${round.result === 'FAILED' && 'bg-red-100 text-red-700'}
+                        ${round.result === 'PENDING' && 'bg-yellow-100 text-yellow-700'}
+                        ${round.result === 'SKIPPED' && 'bg-zinc-100 text-zinc-700'}
+                    `}
+                                >
+                                    {round.result}
+                                </span>
+
+                                {round.personal_notes && (
+                                    <p className="mt-1 text-xs text-zinc-500 italic dark:text-zinc-600">
+                                        "{round.personal_notes}"
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
             </div>
 
 
             <div className="space-y-6">
+                <div className="grid grid-cols-1 w-full place-items-end place-content-end">
+                    <button
+                        type="button"
+                        onClick={() => formRef.current?.requestSubmit()}
+                        disabled={isSaving}
+                        className="top-4 right-4 flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 hover:shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        {isSaving ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Save size={16} />
+                                Save Changes
+                            </>
+                        )}
+                    </button>
+                </div>
 
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div className="space-y-4">
@@ -165,7 +233,6 @@ export function ApplicationDetailsView({ app, history }: Props) {
                     </div>
                 </div>
 
-
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                         <Clock size={16} /> Timeline
@@ -181,7 +248,7 @@ export function ApplicationDetailsView({ app, history }: Props) {
                                         item.new_status.slice(1).toLowerCase()}
                                 </p>
                                 <p className="text-xs text-zinc-500 mt-0.5">
-                                    {new Date(item.created_at).toLocaleDateString()}
+                                    {new Date(item.changed_at).toLocaleDateString("en-IN")}
                                 </p>
                                 {item.notes && (
                                     <p className="mt-1 text-xs text-zinc-500 italic dark:text-zinc-600">

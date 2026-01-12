@@ -12,7 +12,6 @@ type Application = {
   updated_at: Date;
 };
 
-// Helper for Status Badge Colors
 const getStatusStyles = (status: string) => {
   switch (status) {
     case "OFFER":
@@ -25,7 +24,7 @@ const getStatusStyles = (status: string) => {
       return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400 border-red-200 dark:border-red-500/20";
     case "WITHDRAWN":
       return "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700";
-    default: // APPLIED
+    default:
       return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700";
   }
 };
@@ -51,7 +50,6 @@ export function ApplicationsTable({ data }: { data: Application[] }) {
   return (
     <div className="w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-black">
       <table className="w-full text-left text-sm">
-        {/* Table Header */}
         <thead className="bg-zinc-50 text-zinc-500 dark:bg-zinc-900/50 dark:text-zinc-400">
           <tr>
             <th className="px-6 py-4 font-medium">Company</th>
@@ -62,7 +60,6 @@ export function ApplicationsTable({ data }: { data: Application[] }) {
           </tr>
         </thead>
 
-        {/* Table Body */}
         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {data.map((app) => (
             <tr
@@ -70,7 +67,6 @@ export function ApplicationsTable({ data }: { data: Application[] }) {
               onClick={() => router.push(`/applications/${app.application_id}`)}
               className="group cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
             >
-              {/* Company Column */}
               <td className="px-6 py-4">
                 <div className="font-semibold text-zinc-900 dark:text-zinc-100">
                   {app.company_name}
@@ -82,12 +78,10 @@ export function ApplicationsTable({ data }: { data: Application[] }) {
                 )}
               </td>
 
-              {/* Role Column */}
               <td className="px-6 py-4 text-zinc-700 dark:text-zinc-300">
                 {app.role_title}
               </td>
 
-              {/* Status Column */}
               <td className="px-6 py-4">
                 <span
                   className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusStyles(
@@ -97,15 +91,11 @@ export function ApplicationsTable({ data }: { data: Application[] }) {
                   {app.status.charAt(0) + app.status.slice(1).toLowerCase()}
                 </span>
               </td>
-
-              {/* Priority Column */}
               <td className="px-6 py-4">
                  <span className={`text-xs ${getPriorityStyles(app.priority)}`}>
                     {app.priority || "-"}
                  </span>
               </td>
-
-              {/* Date Column */}
               <td className="px-6 py-4 text-right text-zinc-500 dark:text-zinc-400">
                 {new Date(app.applied_date).toLocaleDateString("en-US", {
                   month: "short",

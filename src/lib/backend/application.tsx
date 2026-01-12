@@ -192,7 +192,14 @@ const ApplicationDetailSchema = z.object({
     company_name: z.string(),
     company_location: z.string().nullable(),
     job_link: z.string().nullable(),
-    status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']),
+    status: z.enum([
+      'APPLIED',
+      'SHORTLISTED',
+      'INTERVIEWING',
+      'OFFER',
+      'REJECTED',
+      'WITHDRAWN'
+    ]),
     priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).nullable(),
     general_notes: z.string().nullable(),
     applied_date: z.date(),
@@ -203,6 +210,20 @@ const ApplicationDetailSchema = z.object({
     new_status: z.string(),
     notes: z.string().nullable(),
     created_at: z.date(),
+  })),
+  rounds: z.array(z.object({
+    id: z.string(),
+    round_number: z.number(),
+    round_type: z.string(),
+    interview_date: z.date().nullable(),
+    interviewer_name: z.string().nullable(),
+    meeting_link: z.string().nullable(),
+    result: z.enum(['PASSED', 'FAILED', 'PENDING', 'SKIPPED']),
+    questions_asked: z.string().nullable(),
+    feedback_received: z.string().nullable(),
+    personal_notes: z.string().nullable(),
+    created_at: z.date(),
+    updated_at: z.date(),
   }))
 });
 
@@ -210,33 +231,70 @@ export async function getApplicationDetails(userId: string, applicationId: strin
   const dbResult = await getPostgresDatabaseManager(null);
   if (!dbResult.success) return dbResult;
   const appQuery = `
-        SELECT 
-            a.id, a.role_title, c.name as company_name, c.location as company_location,
-            a.job_link, a.status, a.priority, a.general_notes, a.applied_date, a.updated_at
-        FROM applications a
-        JOIN companies c ON a.company_id = c.id
-        WHERE a.id = $1 AND a.user_id = $2
-        LIMIT 1;
-    `;
+    SELECT 
+      a.id,
+      a.role_title,
+      c.name AS company_name,
+      c.location AS company_location,
+      a.job_link,
+      a.status,
+      a.priority,
+      a.general_notes,
+      a.applied_date,
+      a.updated_at
+    FROM applications a
+    JOIN companies c ON a.company_id = c.id
+    WHERE a.id = $1 AND a.user_id = $2
+    LIMIT 1;
+  `;
   const appRes = await dbResult.data.execute(appQuery, [applicationId, userId]);
   if (!appRes.success) return appRes;
-  if (appRes.data.rows.length === 0) return errResult(new Error("Application not found"));
-  const historyQuery = `
-        SELECT id, new_status, notes
-        FROM application_history 
-        WHERE job_application_id = $1;
-    `;
-  const histRes = await dbResult.data.execute(historyQuery, [applicationId]);
+  if (appRes.data.rows.length === 0)
+    return errResult(new Error("Application not found"));
 
+  const historyQuery = `
+    SELECT 
+      id,
+      new_status,
+      notes,
+      changed_at AS created_at
+    FROM application_history
+    WHERE job_application_id = $1
+    ORDER BY changed_at ASC;
+  `;
+  const histRes = await dbResult.data.execute(historyQuery, [applicationId]);
   if (!histRes.success) return histRes;
+
+  const roundsQuery = `
+    SELECT
+      id,
+      round_number,
+      round_type,
+      interview_date,
+      interviewer_name,
+      meeting_link,
+      result,
+      questions_asked,
+      feedback_received,
+      personal_notes,
+      created_at,
+      updated_at
+    FROM interview_rounds
+    WHERE job_application_id = $1
+    ORDER BY created_at ASC;
+  `;
+  const roundsRes = await dbResult.data.execute(roundsQuery, [applicationId]);
+  if (!roundsRes.success) return roundsRes;
+
+  // 4️⃣ Final response
   const rawData = {
     application: appRes.data.rows[0],
-    history: histRes.data.rows || []
+    history: histRes.data.rows || [],
+    rounds: roundsRes.data.rows || [],
   };
 
   return okResult(rawData);
 }
-
 
 // --- 2. UPDATE APPLICATION ---
 

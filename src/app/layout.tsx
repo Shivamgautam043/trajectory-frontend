@@ -34,10 +34,10 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased  bg-white dark:black`}
       >
         <ToastContainer />
-        <MantineProvider>
+        <MantineProvider  defaultColorScheme="dark" >
           <div className="flex flex-col h-screen">
             <Header user={userResult.success === false ? null : userResult.data} />
             <div className="flex flex-1 overflow-hidden">
