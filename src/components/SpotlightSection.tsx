@@ -18,7 +18,7 @@ export function SpotlightSection({ apps }: { apps: App[] }) {
       <div className="flex items-center gap-2 mb-4">
         <AlertCircle className="text-orange-500" size={20} />
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-            Action Required / High Priority
+            High Priority
         </h2>
       </div>
 

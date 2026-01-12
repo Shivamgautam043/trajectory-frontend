@@ -1,10 +1,9 @@
-// components/AddApplicationModal.tsx
-'use client'
+'use client';
 
 import { addApplication } from "@/lib/backend/application";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-
+import { toast } from "react-toastify";
 
 export function AddApplicationModal() {
     const [isOpen, setIsOpen] = useState(false);
@@ -14,8 +13,12 @@ export function AddApplicationModal() {
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setIsLoading(true);
+
         const formData = new FormData(event.currentTarget);
+
+        const companyName = formData.get("companyName") as string;
         const roleTitle = formData.get("roleTitle") as string;
+        const jobLink = formData.get("jobLink") as string;
         const priority = formData.get("priority") as "HIGH" | "MEDIUM" | "LOW";
         const status = formData.get("status") as
             | "APPLIED"
@@ -25,28 +28,27 @@ export function AddApplicationModal() {
             | "WITHDRAWN";
 
         const result = await addApplication({
-            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891",
-            company_id: "ab64ef05-2f88-47e8-b081-2ce56e9a6405",
+            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891", // TODO: Replace with dynamic user ID later
+            company_name: companyName,
             role_title: roleTitle,
+            job_link: jobLink,
             priority,
             status,
             revalidatePath: pathname
         });
 
         setIsLoading(false);
-
         if (result.success) {
             setIsOpen(false);
-            // event.currentTarget.reset();
+            toast.success("Application Added");
         } else {
-            alert("Error: " + result.err.message);
+            const errorMessage = result.err instanceof Error ? result.err.message : "Unknown error";
+            toast.error("Error: " + errorMessage);
         }
     }
 
-
     return (
         <>
-
             <button
                 onClick={() => setIsOpen(true)}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -130,7 +132,7 @@ export function AddApplicationModal() {
                                     </select>
                                 </div>
 
-
+                                {/* Priority */}
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                         Priority
@@ -147,7 +149,6 @@ export function AddApplicationModal() {
                                 </div>
                             </div>
 
-
                             <div className="mt-6 flex justify-end gap-3">
                                 <button
                                     type="button"
@@ -159,7 +160,7 @@ export function AddApplicationModal() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
+                                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? 'Saving...' : 'Save Application'}
                                 </button>

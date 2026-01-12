@@ -9,8 +9,8 @@ import { revalidatePath } from "next/cache";
 // ---------------------------------------------------------
 
 const AddApplicationSchema = z.object({
-    user_id: z.string(),
-    company_id: z.string(),
+    user_id: z.string().uuid(),
+    company_name: z.string().min(1, "Company name is required"), // Changed
     role_title: z.string().min(1, "Role title is required"),
     job_link: z.string().url().optional().or(z.literal('')),
     source: z.string().optional(),
@@ -19,7 +19,7 @@ const AddApplicationSchema = z.object({
     general_notes: z.string().optional()
 });
 
-export async function addApplication(input: z.infer<typeof AddApplicationSchema>& { revalidatePath?: string }): Promise<Result<{ application_id: string }>> {
+export async function addApplication(input: z.infer<typeof AddApplicationSchema> & { revalidatePath?: string }): Promise<Result<{ application_id: string }>> {
     const postgresManagerResult = await getPostgresDatabaseManager(null);
     if (!postgresManagerResult.success) return postgresManagerResult;
 
@@ -27,8 +27,25 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
     if (!parsed.success) return errResult(new Error("Invalid input: " + JSON.stringify(parsed.error.format())));
 
     const data = parsed.data;
+    let companyId = "";
+    const findCompanyQuery = `SELECT id FROM companies WHERE user_id = $1 AND name = $2`;
+    const findRes = await postgresManagerResult.data.execute(findCompanyQuery, [data.user_id, data.company_name]);
 
-    // 1. Insert Application
+    if (!findRes.success) return findRes;
+
+    if (findRes.data.rows.length > 0) {
+        companyId = findRes.data.rows[0].id;
+    } else {
+        const createCompanyQuery = `
+            INSERT INTO companies (id, user_id, name, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            RETURNING id
+        `;
+        const createRes = await postgresManagerResult.data.execute(createCompanyQuery, [data.user_id, data.company_name]);
+        if (!createRes.success) return createRes;
+        companyId = createRes.data.rows[0].id;
+    }
+
     const insertAppQuery = `
     INSERT INTO applications (
       id, user_id, company_id, role_title, job_link, source, priority, status, general_notes, applied_date
@@ -41,7 +58,7 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
 
     const appResult = await postgresManagerResult.data.execute(insertAppQuery, [
         data.user_id,
-        data.company_id,
+        companyId,
         data.role_title,
         data.job_link || null,
         data.source || null,
@@ -54,17 +71,16 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
 
     const appId = (appResult.data.rows?.[0] as { id: string }).id;
 
-    // 2. Automatically Add History Log (So timeline isn't empty)
     const historyQuery = `
     INSERT INTO application_history (id, job_application_id, previous_status, new_status, notes)
     VALUES (gen_random_uuid(), $1, NULL, $2, 'Initial application created')
   `;
 
-    // We await this but don't fail the whole function if history logging fails (non-critical)
     await postgresManagerResult.data.execute(historyQuery, [appId, data.status]);
-     if (input.revalidatePath) {
-    revalidatePath(input.revalidatePath);
-  }
+
+    if (input.revalidatePath) {
+        revalidatePath(input.revalidatePath);
+    }
 
     return okResult({ application_id: appId });
 }
@@ -166,11 +182,7 @@ export async function updateApplication(input: z.infer<typeof UpdateAppSchema>):
 
     return okResult({ success: true });
 }
-// ... imports from your existing setup (getPostgresDatabaseManager, etc)
 
-// --- 1. GET APPLICATION DETAILS ---
-
-// Schema for the return type
 const ApplicationDetailSchema = z.object({
     application: z.object({
         id: z.string(),

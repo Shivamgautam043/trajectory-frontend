@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/header";
 import { getUser } from "@/lib/backend/user";
 import { Sidebar } from "@/components/Sidebar";
+import { ToastContainer } from "react-toastify";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-black`}
       >
+        <ToastContainer />
         <div className="flex flex-col h-screen">
           <Header user={userResult.success === false ? null : userResult.data} />
           <div className="flex flex-1 overflow-hidden">

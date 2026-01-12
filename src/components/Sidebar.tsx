@@ -29,30 +29,14 @@ export function Sidebar() {
     const pathname = usePathname();
     return (
         <aside
-            className={`relative flex flex-col h-screen bg-white dark:bg-black border-r border-zinc-200 dark:border-zinc-800 transition-all duration-300 ease-in-out ${isCollapsed ? "w-16" : "w-60"}`}
+            className={`relative flex flex-col h-screen bg-white dark:bg-black border-r border-zinc-200 dark:border-zinc-800 transition-all duration-300 ease-in-out ${isCollapsed ? "w-16" : "w-56"}`}
         >
-
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className="absolute -right-3 top-1/3 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
             >
                 {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
             </button>
-
-            {/* <div className="flex items-center gap-3 p-4 h-16">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-                    <span className="font-bold text-lg">T</span>
-                </div>
-
-                <div
-                    className={`overflow-hidden transition-all duration-300 ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-                        }`}
-                >
-                    <span className="font-bold text-lg tracking-tight text-zinc-900 dark:text-zinc-50">
-                        Trajectory
-                    </span>
-                </div>
-            </div> */}
 
             <nav className="flex-1 space-y-2 px-2 py-4">
                 {ROUTES.map((route) => {
