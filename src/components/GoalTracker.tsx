@@ -24,7 +24,6 @@ export function GoalTracker({ count }: { count: number }) {
                     <RingProgress
                         size={80}
                         thickness={8}
-                        // roundCaps
                         sections={[{ value: progress, color: progress >= 100 ? 'green' : 'blue' }]}
                         label={
                             <Center>
@@ -40,7 +39,6 @@ export function GoalTracker({ count }: { count: number }) {
                             </Center>
                         }
                     />
-
                     <div className="flex flex-col">
                         <p className="text-sm text-zinc-600 dark:text-zinc-300">
                             {progress >= 100

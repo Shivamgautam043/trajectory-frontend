@@ -9,44 +9,44 @@ import { revalidatePath } from "next/cache";
 // ---------------------------------------------------------
 
 const AddApplicationSchema = z.object({
-    user_id: z.string().uuid(),
-    company_name: z.string().min(1, "Company name is required"), // Changed
-    role_title: z.string().min(1, "Role title is required"),
-    job_link: z.string().url().optional().or(z.literal('')),
-    source: z.string().optional(),
-    priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
-    status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).default('APPLIED'),
-    general_notes: z.string().optional()
+  user_id: z.string().uuid(),
+  company_name: z.string().min(1, "Company name is required"), // Changed
+  role_title: z.string().min(1, "Role title is required"),
+  job_link: z.string().url().optional().or(z.literal('')),
+  source: z.string().optional(),
+  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
+  status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).default('APPLIED'),
+  general_notes: z.string().optional()
 });
 
 export async function addApplication(input: z.infer<typeof AddApplicationSchema> & { revalidatePath?: string }): Promise<Result<{ application_id: string }>> {
-    const postgresManagerResult = await getPostgresDatabaseManager(null);
-    if (!postgresManagerResult.success) return postgresManagerResult;
+  const postgresManagerResult = await getPostgresDatabaseManager(null);
+  if (!postgresManagerResult.success) return postgresManagerResult;
 
-    const parsed = AddApplicationSchema.safeParse(input);
-    if (!parsed.success) return errResult(new Error("Invalid input: " + JSON.stringify(parsed.error.format())));
+  const parsed = AddApplicationSchema.safeParse(input);
+  if (!parsed.success) return errResult(new Error("Invalid input: " + JSON.stringify(parsed.error.format())));
 
-    const data = parsed.data;
-    let companyId = "";
-    const findCompanyQuery = `SELECT id FROM companies WHERE user_id = $1 AND name = $2`;
-    const findRes = await postgresManagerResult.data.execute(findCompanyQuery, [data.user_id, data.company_name]);
+  const data = parsed.data;
+  let companyId = "";
+  const findCompanyQuery = `SELECT id FROM companies WHERE user_id = $1 AND name = $2`;
+  const findRes = await postgresManagerResult.data.execute(findCompanyQuery, [data.user_id, data.company_name]);
 
-    if (!findRes.success) return findRes;
+  if (!findRes.success) return findRes;
 
-    if (findRes.data.rows.length > 0) {
-        companyId = findRes.data.rows[0].id;
-    } else {
-        const createCompanyQuery = `
+  if (findRes.data.rows.length > 0) {
+    companyId = findRes.data.rows[0].id;
+  } else {
+    const createCompanyQuery = `
             INSERT INTO companies (id, user_id, name, created_at, updated_at)
             VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING id
         `;
-        const createRes = await postgresManagerResult.data.execute(createCompanyQuery, [data.user_id, data.company_name]);
-        if (!createRes.success) return createRes;
-        companyId = createRes.data.rows[0].id;
-    }
+    const createRes = await postgresManagerResult.data.execute(createCompanyQuery, [data.user_id, data.company_name]);
+    if (!createRes.success) return createRes;
+    companyId = createRes.data.rows[0].id;
+  }
 
-    const insertAppQuery = `
+  const insertAppQuery = `
     INSERT INTO applications (
       id, user_id, company_id, role_title, job_link, source, priority, status, general_notes, applied_date
     )
@@ -56,106 +56,106 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
     RETURNING id
   `;
 
-    const appResult = await postgresManagerResult.data.execute(insertAppQuery, [
-        data.user_id,
-        companyId,
-        data.role_title,
-        data.job_link || null,
-        data.source || null,
-        data.priority,
-        data.status,
-        data.general_notes || null
-    ]);
+  const appResult = await postgresManagerResult.data.execute(insertAppQuery, [
+    data.user_id,
+    companyId,
+    data.role_title,
+    data.job_link || null,
+    data.source || null,
+    data.priority,
+    data.status,
+    data.general_notes || null
+  ]);
 
-    if (!appResult.success) return appResult;
+  if (!appResult.success) return appResult;
 
-    const appId = (appResult.data.rows?.[0] as { id: string }).id;
+  const appId = (appResult.data.rows?.[0] as { id: string }).id;
 
-    const historyQuery = `
+  const historyQuery = `
     INSERT INTO application_history (id, job_application_id, previous_status, new_status, notes)
     VALUES (gen_random_uuid(), $1, NULL, $2, 'Initial application created')
   `;
 
-    await postgresManagerResult.data.execute(historyQuery, [appId, data.status]);
+  await postgresManagerResult.data.execute(historyQuery, [appId, data.status]);
 
-    if (input.revalidatePath) {
-        revalidatePath(input.revalidatePath);
-    }
+  if (input.revalidatePath) {
+    revalidatePath(input.revalidatePath);
+  }
 
-    return okResult({ application_id: appId });
+  return okResult({ application_id: appId });
 }
 
 const DeleteAppSchema = z.object({
-    application_id: z.string().uuid(),
-    user_id: z.string().uuid(),
+  application_id: z.string().uuid(),
+  user_id: z.string().uuid(),
 });
 
 export async function deleteApplication(input: z.infer<typeof DeleteAppSchema>): Promise<Result<{ success: boolean }>> {
-    const postgresManagerResult = await getPostgresDatabaseManager(null);
-    if (!postgresManagerResult.success) return postgresManagerResult;
+  const postgresManagerResult = await getPostgresDatabaseManager(null);
+  if (!postgresManagerResult.success) return postgresManagerResult;
 
-    const parsed = DeleteAppSchema.safeParse(input);
-    if (!parsed.success) return errResult(new Error("Invalid input"));
+  const parsed = DeleteAppSchema.safeParse(input);
+  if (!parsed.success) return errResult(new Error("Invalid input"));
 
-    const { application_id, user_id } = parsed.data;
+  const { application_id, user_id } = parsed.data;
 
-    const query = `
+  const query = `
     DELETE FROM applications 
     WHERE id = $1 AND user_id = $2
   `;
 
-    const result = await postgresManagerResult.data.execute(query, [application_id, user_id]);
+  const result = await postgresManagerResult.data.execute(query, [application_id, user_id]);
 
-    if (!result.success) return result;
+  if (!result.success) return result;
 
-    if ((result.data.rowCount ?? 0) === 0) {
-        return errResult(new Error("Application not found or unauthorized."));
-    }
+  if ((result.data.rowCount ?? 0) === 0) {
+    return errResult(new Error("Application not found or unauthorized."));
+  }
 
-    return okResult({ success: true });
+  return okResult({ success: true });
 }
 
 const UpdateAppSchema = z.object({
-    user_id: z.string().uuid(),
-    application_id: z.string().uuid(),
-    role_title: z.string().optional(),
-    job_link: z.string().optional(),
-    status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).optional(),
-    priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
-    general_notes: z.string().optional(),
+  user_id: z.string().uuid(),
+  application_id: z.string().uuid(),
+  role_title: z.string().optional(),
+  job_link: z.string().optional(),
+  status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).optional(),
+  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
+  general_notes: z.string().optional().nullable(),
 });
 
-export async function updateApplication(input: z.infer<typeof UpdateAppSchema>): Promise<Result<{ success: boolean }>> {
-    const postgresManagerResult = await getPostgresDatabaseManager(null);
-    if (!postgresManagerResult.success) return postgresManagerResult;
+export async function updateApplication(input: z.infer<typeof UpdateAppSchema> & { revalidatePath?: string }): Promise<Result<{ success: boolean }>> {
+  const postgresManagerResult = await getPostgresDatabaseManager(null);
+  if (!postgresManagerResult.success) return postgresManagerResult;
 
-    const parsed = UpdateAppSchema.safeParse(input);
-    if (!parsed.success) return errResult(new Error("Invalid input"));
-    const data = parsed.data;
+  const parsed = UpdateAppSchema.safeParse(input);
+  if (!parsed.success) return errResult(new Error(parsed.error.message));
+  const data = parsed.data;
 
-    // 1. If Status is changing, we need to log history FIRST
-    if (data.status) {
-        // Get current status
-        const currentStatusQuery = `SELECT status FROM applications WHERE id = $1 AND user_id = $2`;
-        const statusResult = await postgresManagerResult.data.execute(currentStatusQuery, [data.application_id, data.user_id]);
+  // 1. If Status is changing, we need to log history FIRST
+  if (data.status) {
+    // Get current status
+    const currentStatusQuery = `SELECT status FROM applications WHERE id = $1 AND user_id = $2`;
+    const statusResult = await postgresManagerResult.data.execute(currentStatusQuery, [data.application_id, data.user_id]);
 
-        if (statusResult.success && statusResult.data.rows && statusResult.data.rows.length > 0) {
-            const currentStatus = statusResult.data.rows[0].status;
+    if (statusResult.success && statusResult.data.rows && statusResult.data.rows.length > 0) {
+      const currentStatus = statusResult.data.rows[0].status;
 
-            // Only insert history if status is actually different
-            if (currentStatus !== data.status) {
-                const historyQuery = `
+      // Only insert history if status is actually different
+      if (currentStatus !== data.status) {
+        const historyQuery = `
           INSERT INTO application_history (id, job_application_id, previous_status, new_status, notes)
           VALUES (gen_random_uuid(), $1, $2, $3, 'Status updated via dashboard')
         `;
-                // We await this but continue even if it fails (non-blocking)
-                await postgresManagerResult.data.execute(historyQuery, [data.application_id, currentStatus, data.status]);
-            }
-        }
+        // We await this but continue even if it fails (non-blocking)
+        await postgresManagerResult.data.execute(historyQuery, [data.application_id, currentStatus, data.status]);
+      }
     }
+  }
 
-    // 2. Update the Application Record
-    const updateQuery = `
+  // 2. Update the Application Record
+  const updateQuery = `
     UPDATE applications
     SET 
       role_title = COALESCE($3, role_title),
@@ -167,74 +167,134 @@ export async function updateApplication(input: z.infer<typeof UpdateAppSchema>):
     WHERE id = $1 AND user_id = $2
   `;
 
-    const result = await postgresManagerResult.data.execute(updateQuery, [
-        data.application_id,
-        data.user_id,
-        data.role_title || null,
-        data.job_link || null,
-        data.status || null,
-        data.priority || null,
-        data.general_notes || null
-    ]);
+  const result = await postgresManagerResult.data.execute(updateQuery, [
+    data.application_id,
+    data.user_id,
+    data.role_title ?? null,
+    data.job_link ?? null,
+    data.status ?? null,
+    data.priority ?? null,
+    data.general_notes ?? null
+  ]);
 
-    if (!result.success) return result;
-    if ((result.data.rowCount ?? 0) === 0) return errResult(new Error("Application not found"));
-
-    return okResult({ success: true });
+  if (!result.success) return result;
+  if ((result.data.rowCount ?? 0) === 0) return errResult(new Error("Application not found"));
+  if (input.revalidatePath) {
+    revalidatePath(input.revalidatePath);
+  }
+  return okResult({ success: true });
 }
 
 const ApplicationDetailSchema = z.object({
-    application: z.object({
-        id: z.string(),
-        role_title: z.string(),
-        company_name: z.string(),
-        company_location: z.string().nullable(),
-        job_link: z.string().nullable(),
-        status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']),
-        priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).nullable(),
-        general_notes: z.string().nullable(),
-        applied_date: z.date(),
-        updated_at: z.date(),
-    }),
-    history: z.array(z.object({
-        id: z.string(),
-        new_status: z.string(),
-        notes: z.string().nullable(),
-        created_at: z.date(),
-    }))
+  application: z.object({
+    id: z.string(),
+    role_title: z.string(),
+    company_name: z.string(),
+    company_location: z.string().nullable(),
+    job_link: z.string().nullable(),
+    status: z.enum([
+      'APPLIED',
+      'SHORTLISTED',
+      'INTERVIEWING',
+      'OFFER',
+      'REJECTED',
+      'WITHDRAWN'
+    ]),
+    priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).nullable(),
+    general_notes: z.string().nullable(),
+    applied_date: z.date(),
+    updated_at: z.date(),
+  }),
+  history: z.array(z.object({
+    id: z.string(),
+    new_status: z.string(),
+    notes: z.string().nullable(),
+    created_at: z.date(),
+  })),
+  rounds: z.array(z.object({
+    id: z.string(),
+    round_number: z.number(),
+    round_type: z.string(),
+    interview_date: z.date().nullable(),
+    interviewer_name: z.string().nullable(),
+    meeting_link: z.string().nullable(),
+    result: z.enum(['PASSED', 'FAILED', 'PENDING', 'SKIPPED']),
+    questions_asked: z.string().nullable(),
+    feedback_received: z.string().nullable(),
+    personal_notes: z.string().nullable(),
+    created_at: z.date(),
+    updated_at: z.date(),
+  }))
 });
 
 export async function getApplicationDetails(userId: string, applicationId: string) {
-    const dbResult = await getPostgresDatabaseManager(null);
-    if (!dbResult.success) return dbResult;
-    const appQuery = `
-        SELECT 
-            a.id, a.role_title, c.name as company_name, c.location as company_location,
-            a.job_link, a.status, a.priority, a.general_notes, a.applied_date, a.updated_at
-        FROM applications a
-        JOIN companies c ON a.company_id = c.id
-        WHERE a.id = $1 AND a.user_id = $2
-        LIMIT 1;
-    `;
-    const appRes = await dbResult.data.execute(appQuery, [applicationId, userId]);
-    if (!appRes.success) return appRes;
-    if (appRes.data.rows.length === 0) return errResult(new Error("Application not found"));
-    const historyQuery = `
-        SELECT id, new_status, notes
-        FROM application_history 
-        WHERE job_application_id = $1;
-    `;
-    const histRes = await dbResult.data.execute(historyQuery, [applicationId]);
-    
-     if (!histRes.success) return histRes;
-    const rawData = {
-        application: appRes.data.rows[0],
-        history: histRes.data.rows || []
-    };
+  const dbResult = await getPostgresDatabaseManager(null);
+  if (!dbResult.success) return dbResult;
+  const appQuery = `
+    SELECT 
+      a.id,
+      a.role_title,
+      c.name AS company_name,
+      c.location AS company_location,
+      a.job_link,
+      a.status,
+      a.priority,
+      a.general_notes,
+      a.applied_date,
+      a.updated_at
+    FROM applications a
+    JOIN companies c ON a.company_id = c.id
+    WHERE a.id = $1 AND a.user_id = $2
+    LIMIT 1;
+  `;
+  const appRes = await dbResult.data.execute(appQuery, [applicationId, userId]);
+  if (!appRes.success) return appRes;
+  if (appRes.data.rows.length === 0)
+    return errResult(new Error("Application not found"));
 
-    return okResult(rawData);
+  const historyQuery = `
+    SELECT 
+      id,
+      new_status,
+      notes,
+      changed_at AS created_at
+    FROM application_history
+    WHERE job_application_id = $1
+    ORDER BY changed_at ASC;
+  `;
+  const histRes = await dbResult.data.execute(historyQuery, [applicationId]);
+  if (!histRes.success) return histRes;
+
+  const roundsQuery = `
+    SELECT
+      id,
+      round_number,
+      round_type,
+      interview_date,
+      interviewer_name,
+      meeting_link,
+      result,
+      questions_asked,
+      feedback_received,
+      personal_notes,
+      created_at,
+      updated_at
+    FROM interview_rounds
+    WHERE job_application_id = $1
+    ORDER BY created_at ASC;
+  `;
+  const roundsRes = await dbResult.data.execute(roundsQuery, [applicationId]);
+  if (!roundsRes.success) return roundsRes;
+
+  // 4️⃣ Final response
+  const rawData = {
+    application: appRes.data.rows[0],
+    history: histRes.data.rows || [],
+    rounds: roundsRes.data.rows || [],
+  };
+
+  return okResult(rawData);
 }
-
 
 // --- 2. UPDATE APPLICATION ---
 
@@ -260,7 +320,7 @@ export async function getApplicationDetails(userId: string, applicationId: strin
 //     if (data.status) {
 //         const currentQuery = `SELECT status FROM applications WHERE id = $1 AND user_id = $2`;
 //         const currentRes = await dbResult.data.execute(currentQuery, [data.application_id, data.user_id]);
-        
+
 //         if (currentRes.success && currentRes.data.rows.length > 0) {
 //             const oldStatus = currentRes.data.rows[0].status;
 //             if (oldStatus !== data.status) {
@@ -277,7 +337,7 @@ export async function getApplicationDetails(userId: string, applicationId: strin
 //     // We use COALESCE to keep existing values if the input is undefined
 //     // Note: for strings, if we want to allow clearing them (setting to null), we need to handle that.
 //     // Here we assume undefined = no change.
-    
+
 //     const updateQuery = `
 //         UPDATE applications SET
 //             role_title = COALESCE($3, role_title),
@@ -321,8 +381,8 @@ const AnalyticsDataSchema = z.object({
 });
 
 export async function getAnalyticsData(
-  userId: string, 
-  startDate: Date, 
+  userId: string,
+  startDate: Date,
   endDate: Date
 ): Promise<Result<z.infer<typeof AnalyticsDataSchema>>> {
   const dbResult = await getPostgresDatabaseManager(null);
@@ -361,7 +421,7 @@ export async function getAnalyticsData(
   // --- Process Daily Trend (Fill in missing days with 0) ---
   const rawTrend = trendRes.data.rows as { date: string; count: number }[];
   const filledTrend = [];
-  
+
   // Loop through every day in range to ensure the graph doesn't have gaps
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split('T')[0];
@@ -372,7 +432,7 @@ export async function getAnalyticsData(
     });
   }
   const statusColors: Record<string, string> = {
-    'APPLIED': 'gray.5',  
+    'APPLIED': 'gray.5',
     'SHORTLISTED': 'violet.5',
     'INTERVIEWING': 'blue.5',
     'OFFER': 'green.5',

@@ -8,7 +8,6 @@ type ListProps = {
     status: any;
     priority: any;
     updated_at: Date;
-    // ... other fields
   }>
 };
 

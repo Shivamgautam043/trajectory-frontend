@@ -1,6 +1,6 @@
 "use client";
 
-import { AreaChart, DonutChart } from '@mantine/charts'; // Import AreaChart
+import { AreaChart, DonutChart } from '@mantine/charts';
 import { MantineProvider } from '@mantine/core';
 import '@mantine/charts/styles.css';
 import '@mantine/core/styles.css';
@@ -15,14 +15,13 @@ export function AnalyticsSection({ dailyTrend, statusDistribution }: Props) {
     <MantineProvider defaultColorScheme="auto">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8">
         
-        {/* --- GRAPH 1: Applications Area Chart --- */}
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <h3 className="mb-6 text-lg font-semibold text-zinc-900 dark:text-zinc-100 text-start">
             Activity
           </h3>
           
           <AreaChart
-            h={250}
+            h={150}
             data={dailyTrend}
             dataKey="date"
             series={[
@@ -46,13 +45,12 @@ export function AnalyticsSection({ dailyTrend, statusDistribution }: Props) {
               data={statusDistribution}
               withTooltip
               tooltipDataSource="segment"
-              size={220}
-              thickness={20}
+              size={120}
+              thickness={10}
               withLabelsLine
               paddingAngle={2}
             />
           </div>
-          {/* Custom Legend */}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
              {statusDistribution.map((item) => (
                  <div key={item.name} className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -65,7 +63,6 @@ export function AnalyticsSection({ dailyTrend, statusDistribution }: Props) {
              ))}
           </div>
         </div>
-
       </div>
     </MantineProvider>
   );
