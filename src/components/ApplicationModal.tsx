@@ -51,11 +51,10 @@ export function AddApplicationModal() {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
                 + Add Application
             </button>
-
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="w-full max-w-md overflow-hidden rounded-xl bg-white p-6 shadow-2xl dark:bg-zinc-900 ring-1 ring-zinc-200 dark:ring-zinc-800">

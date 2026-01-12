@@ -5,7 +5,6 @@ import { ArrowLeft } from "lucide-react";
 import { getApplicationDetails } from "@/lib/backend/application";
 
 export default async function ApplicationDetailPage({ params }: { params: { applicationId: string } }) {
-    // Await params as required in newer Next.js versions
     const { applicationId } = await params; 
     const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891"; // Hardcoded for now
 
@@ -25,7 +24,6 @@ export default async function ApplicationDetailPage({ params }: { params: { appl
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
             <div className="mx-auto max-w-5xl">
-                {/* Back Link */}
                 <Link 
                     href="/applications" 
                     className="mb-6 inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
