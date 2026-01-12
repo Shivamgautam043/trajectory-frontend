@@ -16,7 +16,11 @@ export default async function Home() {
 
     const [statsResult, applicationsResult, analyticsResult] = await Promise.all([
         getDashboardStats(userId),
-        getKanbanBoardData(userId),
+        getKanbanBoardData(userId, {
+            search: "",
+            page: 1,
+            limit: 100,
+        }),
         getAnalyticsData(userId, startDate, endDate)
     ]);
 
@@ -25,7 +29,7 @@ export default async function Home() {
         ? analyticsResult.data.dailyTrend.find(d => d.date === todayStr)
         : null;
     const applicationsToday = todayStats ? todayStats.count : 0;
-    const allApps = applicationsResult.success ? applicationsResult.data : [];
+    const allApps = applicationsResult.success ? applicationsResult.data.items : [];
     const spotlightApps = allApps.filter(app =>
         app.priority === 'HIGH' || app.status === 'INTERVIEWING' || app.status === 'OFFER'
     ).slice(0, 3);
@@ -69,7 +73,7 @@ export default async function Home() {
                         <AddApplicationModal />
                     </div>
                     {applicationsResult.success === true && (
-                        <ApplicationList applications={applicationsResult.data} />
+                        <ApplicationList applications={applicationsResult.data.items} />
                     )}
                 </div>
             </main>

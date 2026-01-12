@@ -209,7 +209,7 @@ const ApplicationDetailSchema = z.object({
     id: z.string(),
     new_status: z.string(),
     notes: z.string().nullable(),
-    created_at: z.date(),
+    changed_at: z.date(),
   })),
   rounds: z.array(z.object({
     id: z.string(),
@@ -257,7 +257,7 @@ export async function getApplicationDetails(userId: string, applicationId: strin
       id,
       new_status,
       notes,
-      changed_at AS created_at
+      changed_at
     FROM application_history
     WHERE job_application_id = $1
     ORDER BY changed_at ASC;

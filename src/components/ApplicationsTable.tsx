@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { PaginationFooter } from "./PaginationFooter";
 type Application = {
   application_id: string;
   company_name: string;
@@ -29,14 +30,13 @@ const getStatusStyles = (status: string) => {
   }
 };
 
-// Helper for Priority Colors
 const getPriorityStyles = (priority: string | null) => {
     if (priority === "HIGH") return "text-red-600 dark:text-red-400 font-medium";
     if (priority === "MEDIUM") return "text-orange-600 dark:text-orange-400";
     return "text-zinc-500 dark:text-zinc-500";
 };
 
-export function ApplicationsTable({ data }: { data: Application[] }) {
+export function ApplicationsTable({ data ,total,page,limit}: { data: Application[] ,total:number,page:number,limit:number}) {
   const router = useRouter();
 
   if (data.length === 0) {
@@ -107,6 +107,7 @@ export function ApplicationsTable({ data }: { data: Application[] }) {
           ))}
         </tbody>
       </table>
+       <PaginationFooter total={total} page={page} limit={limit} />
     </div>
   );
 }

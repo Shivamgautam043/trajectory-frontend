@@ -33,8 +33,7 @@ export async function getUser(): Promise<Result<z.infer<typeof UserSchema>>> {
     return okResult(parsed.data);
 }
 
-// ---------by gemini--------------------------------------------------------
-// Schema for the Kanban Card (Joined Data)
+// ---------
 const KanbanCardSchema = z.object({
     application_id: z.string(),
     company_name: z.string(),
@@ -45,47 +44,91 @@ const KanbanCardSchema = z.object({
     applied_date: z.date(),
     updated_at: z.date(),
 });
+type GetKanbanOptions = {
+    search?: string;
+    page: number;
+    limit: number;
+};
+
+export const KanbanBoardPaginatedSchema = z.object({
+    items: z.array(KanbanCardSchema),
+    total: z.number(),
+});
 
 export const KanbanBoardResponseSchema = z.array(KanbanCardSchema);
 
-export async function getKanbanBoardData(userId: string): Promise<Result<z.infer<typeof KanbanBoardResponseSchema>>> {
+export async function getKanbanBoardData(
+    userId: string,
+    options: GetKanbanOptions
+): Promise<Result<z.infer<typeof KanbanBoardPaginatedSchema>>> {
     const postgresManagerResult = await getPostgresDatabaseManager(null);
-    if (!postgresManagerResult.success) {
-        return postgresManagerResult;
+    if (!postgresManagerResult.success) return postgresManagerResult;
+
+    const { search = "", page, limit } = options;
+    const offset = (page - 1) * limit;
+
+    const params: any[] = [userId];
+    let whereClause = `a.user_id = $1`;
+
+    if (search) {
+        params.push(`%${search}%`);
+        whereClause += 
+        `AND (
+        c.name ILIKE $${params.length}
+        OR a.role_title ILIKE $${params.length}
+        )
+        `;
     }
 
-    const query = `
-    SELECT 
-      a.id as application_id,
-      c.name as company_name,
-      c.location as company_location,
-      a.role_title,
-      a.status,
-      a.priority,
-      a.applied_date,
-      a.updated_at
-    FROM applications a
-    JOIN companies c ON a.company_id = c.id
-    WHERE a.user_id = $1
-    ORDER BY a.updated_at DESC
-  `;
+    params.push(limit, offset);
 
-    const queryResult = await postgresManagerResult.data.execute(query, [userId]);
+    const dataQuery = `
+                SELECT 
+                  a.id as application_id,
+                  c.name as company_name,
+                  c.location as company_location,
+                  a.role_title,
+                  a.status,
+                  a.priority,
+                  a.applied_date,
+                  a.updated_at
+                FROM applications a
+                JOIN companies c ON a.company_id = c.id
+                WHERE ${whereClause}
+                ORDER BY a.updated_at DESC
+                LIMIT $${params.length - 1}
+                OFFSET $${params.length}
+              `;
 
-    if (!queryResult.success) {
-        return queryResult;
+    const countQuery = `
+                SELECT COUNT(*)::int AS total
+                FROM applications a
+                JOIN companies c ON a.company_id = c.id
+                WHERE ${whereClause}
+              `;
+
+    const [dataResult, countResult] = await Promise.all([
+        postgresManagerResult.data.execute(dataQuery, params),
+        postgresManagerResult.data.execute(countQuery, params.slice(0, -2)),
+    ]);
+
+    if (!dataResult.success) return dataResult;
+    if (!countResult.success) return countResult;
+
+    const parsedItems = z.array(KanbanCardSchema).safeParse(
+        dataResult.data.rows ?? []
+    );
+
+    if (!parsedItems.success) {
+        return errResult(new Error("Schema validation failed"));
     }
 
-    const rows = (queryResult.data.rows ?? []) as unknown[];
-    const parsed = KanbanBoardResponseSchema.safeParse(rows);
-    if (!parsed.success) {
-        return errResult(new Error("Kanban schema validation failed: " + JSON.stringify(parsed.error.format())));
-    }
-
-    return okResult(parsed.data);
+    return okResult({
+        items: parsedItems.data,
+        total: countResult.data.rows[0].total,
+    });
 }
 
-// Schema for Rounds
 const RoundSchema = z.object({
     round_number: z.number(),
     round_type: z.string(),

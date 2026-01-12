@@ -63,9 +63,6 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
     return (
         <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="relative lg:col-span-2 space-y-6">
-
-
-
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <form
                         id="application-form"
@@ -95,7 +92,6 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                                 placeholder="Add Link to Job Posting..."
                             />
                         </div>
-
                     </form>
                 </div>
 
@@ -168,10 +164,7 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                         ))}
                     </div>
                 </div>
-
             </div>
-
-
             <div className="space-y-6">
                 <div className="grid grid-cols-1 w-full place-items-end place-content-end">
                     <button
@@ -250,6 +243,7 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                                 <p className="text-xs text-zinc-500 mt-0.5">
                                     {new Date(item.changed_at).toLocaleDateString("en-IN")}
                                 </p>
+                                
                                 {item.notes && (
                                     <p className="mt-1 text-xs text-zinc-500 italic dark:text-zinc-600">
                                         "{item.notes}"
