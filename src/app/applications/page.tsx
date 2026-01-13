@@ -7,15 +7,13 @@ type PageProps = {
   searchParams: Promise<{
     q?: string;
     page?: string;
-    limit?:string;
+    limit?: string;
   }>;
 };
 
 export default async function ApplicationsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-
   const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891";
-
   const search = params.q ?? "";
   const page = Number(params.page ?? "1");
   const limit = Number(params.limit ?? "5");

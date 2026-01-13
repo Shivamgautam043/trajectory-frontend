@@ -44,6 +44,8 @@ const KanbanCardSchema = z.object({
     applied_date: z.date(),
     updated_at: z.date(),
 });
+
+
 type GetKanbanOptions = {
     search?: string;
     page: number;

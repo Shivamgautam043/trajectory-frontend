@@ -1,16 +1,13 @@
+'use server';
 import { z } from "zod";
 import { getPostgresDatabaseManager } from "../../../submodules/submodule-database-manager-postgres/postgresDatabaseManager.server";
 import { Result, okResult, errResult } from "../../../submodules/submodule-database-manager-postgres/utilities/errorHandling";
 
-// ---------------------------------------------------------
-// ADD INTERVIEW ROUND
-// ---------------------------------------------------------
-
 const AddRoundSchema = z.object({
-    job_application_id: z.string().uuid(),
+    job_application_id: z.string(),
     round_number: z.number().int().positive(),
-    round_type: z.string().min(1, "Round type is required"), // e.g. "DSA", "System Design"
-    interview_date: z.date().optional(), // Can be null if scheduling is pending
+    round_type: z.string().min(1, "Round type is required"),
+    interview_date: z.date().optional(),
     interviewer_name: z.string().optional(),
     meeting_link: z.string().url().optional().or(z.literal('')),
 });
@@ -50,8 +47,8 @@ export async function addInterviewRound(input: z.infer<typeof AddRoundSchema>): 
 }
 
 const DeleteRoundSchema = z.object({
-    round_id: z.string().uuid(),
-    user_id: z.string().uuid(), // Still needed for security
+    round_id: z.string(),
+    user_id: z.string(),
 });
 
 export async function deleteInterviewRound(input: z.infer<typeof DeleteRoundSchema>): Promise<Result<{ success: boolean }>> {

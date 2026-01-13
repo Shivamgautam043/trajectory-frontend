@@ -8,7 +8,9 @@ export function SearchInput({ defaultValue }: { defaultValue: string }) {
   const searchParams = useSearchParams();
 
   const [value, setValue] = useState(defaultValue);
+
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
   const currentQuery = searchParams.get("q") ?? "";
 
   useEffect(() => {
@@ -20,14 +22,12 @@ export function SearchInput({ defaultValue }: { defaultValue: string }) {
 
     debounceRef.current = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
-
       if (value) {
         params.set("q", value);
         params.set("page", "1");
       } else {
         params.delete("q");
       }
-
       router.push(`?${params.toString()}`);
     }, 400);
 
