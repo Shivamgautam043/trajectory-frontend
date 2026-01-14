@@ -120,11 +120,15 @@ export const StatsSchema = z.object({
   rejections: z.number(),
 });
 
-export const UpdateRoundInput = z.object({
-  round_id: z.string(),
-  result: z.enum(["PASSED", "FAILED", "PENDING", "SKIPPED"]),
-  questions_asked: z.string().optional(),
-  feedback_received: z.string().optional(),
+export const UpdateInterviewRoundSchema = ApplicationRoundSchema.pick({
+  id: true,
+  result: true,
+  interview_date: true,
+  interviewer_name: true,
+  meeting_link: true,
+  feedback_received: true,
+  questions_asked: true,
+  personal_notes: true,
 });
 
 export const AddCompanySchema = z.object({

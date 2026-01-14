@@ -6,7 +6,7 @@ import {
   okResult,
   errResult,
 } from "../../../submodules/submodule-database-manager-postgres/utilities/errorHandling";
-import { UpdateRoundInput } from "@/utilities/schemas";
+import { UpdateInterviewRoundSchema } from "@/utilities/schemas";
 
 const AddRoundSchema = z.object({
   job_application_id: z.string(),
@@ -85,27 +85,35 @@ export async function deleteInterviewRound(input: {
   return okResult({ success: true });
 }
 
-export async function updateRoundResult(
-  input: z.infer<typeof UpdateRoundInput>
-): Promise<Result<{ success: boolean }>> {
+export async function updateInterviewRound(
+  input: z.infer<typeof UpdateInterviewRoundSchema>
+): Promise<Result<{ success: true }>> {
   const postgresManagerResult = await getPostgresDatabaseManager(null);
   if (!postgresManagerResult.success) return postgresManagerResult;
 
   const query = `
     UPDATE interview_rounds
-    SET 
+    SET
       result = $2,
-      questions_asked = COALESCE($3, questions_asked),
-      feedback_received = COALESCE($4, feedback_received),
+      interview_date = $3,
+      interviewer_name = $4,
+      meeting_link = $5,
+      feedback_received = $6,
+      questions_asked = $7,
+      personal_notes = $8,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = $1
   `;
 
   const queryResult = await postgresManagerResult.data.execute(query, [
-    input.round_id,
+    input.id,
     input.result,
-    input.questions_asked || null,
-    input.feedback_received || null,
+    input.interview_date,
+    input.interviewer_name,
+    input.meeting_link,
+    input.feedback_received,
+    input.questions_asked,
+    input.personal_notes,
   ]);
 
   if (!queryResult.success) return queryResult;
