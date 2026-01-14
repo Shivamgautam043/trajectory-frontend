@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ToastContainer } from "react-toastify";
 import { MantineProvider } from "@mantine/core";
 import '@mantine/core/styles.css';
+import '@mantine/charts/styles.css';
 import '@mantine/tiptap/styles.css';
 
 const geistSans = Geist({
@@ -37,7 +38,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased  bg-white dark:black`}
       >
         <ToastContainer />
-        <MantineProvider  defaultColorScheme="dark" >
+        <MantineProvider  defaultColorScheme="auto">
           <div className="flex flex-col h-screen">
             <Header user={userResult.success === false ? null : userResult.data} />
             <div className="flex flex-1 overflow-hidden">

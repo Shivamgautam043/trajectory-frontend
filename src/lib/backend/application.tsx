@@ -1,35 +1,120 @@
 "use server";
 import { z } from "zod";
 import { getPostgresDatabaseManager } from "../../../submodules/submodule-database-manager-postgres/postgresDatabaseManager.server";
-import { Result, okResult, errResult } from "../../../submodules/submodule-database-manager-postgres/utilities/errorHandling";
+import {
+  Result,
+  okResult,
+  errResult,
+} from "../../../submodules/submodule-database-manager-postgres/utilities/errorHandling";
 import { revalidatePath } from "next/cache";
+import {
+  AddApplicationSchema,
+  AnalyticsDataSchema,
+  ApplicationSchema,
+  ApplicationsPaginatedSchema,
+  ApplicationWithRoundsSchema,
+  UpdateApplicationSchema,
+} from "@/utilities/schemas";
 
-// ---------------------------------------------------------
-// ADD APPLICATION
-// ---------------------------------------------------------
+export async function getApplicationsForUser(
+  userId: string,
+  options: {
+    search?: string;
+    page: number;
+    limit: number;
+  }
+): Promise<Result<z.infer<typeof ApplicationsPaginatedSchema>>> {
+  const postgresManagerResult = await getPostgresDatabaseManager(null);
+  if (!postgresManagerResult.success) return postgresManagerResult;
 
-const AddApplicationSchema = z.object({
-  user_id: z.string().uuid(),
-  company_name: z.string().min(1, "Company name is required"), // Changed
-  role_title: z.string().min(1, "Role title is required"),
-  job_link: z.string().url().optional().or(z.literal('')),
-  source: z.string().optional(),
-  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
-  status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).default('APPLIED'),
-  general_notes: z.string().optional()
-});
+  const { search = "", page, limit } = options;
+  const offset = (page - 1) * limit;
 
-export async function addApplication(input: z.infer<typeof AddApplicationSchema> & { revalidatePath?: string }): Promise<Result<{ application_id: string }>> {
+  const params: any[] = [userId];
+  let whereClause = `a.user_id = $1`;
+
+  if (search) {
+    params.push(`%${search}%`);
+    whereClause += ` AND (
+    c.name ILIKE $${params.length}
+    OR a.role_title ILIKE $${params.length}
+  )`;
+  }
+
+  params.push(limit, offset);
+
+  const dataQuery = `
+                SELECT DISTINCT
+                  a.id as id,
+                  a.user_id,
+                  c.id as company_id,
+                  c.name as company_name,
+                  c.location as company_location,
+                  a.role_title,
+                  a.job_link,
+                  a.source,
+                  a.status,
+                  a.general_notes,
+                  a.priority,
+                  a.applied_date,
+                  a.created_at,
+                  a.updated_at
+                FROM applications a
+                JOIN companies c ON a.company_id = c.id
+                WHERE ${whereClause}
+                ORDER BY a.updated_at DESC
+                LIMIT $${params.length - 1}
+                OFFSET $${params.length}
+              `;
+
+  const countQuery = `
+                SELECT COUNT(*)::int AS total
+                FROM applications a
+                JOIN companies c ON a.company_id = c.id
+                WHERE ${whereClause}
+              `;
+
+  const [dataResult, countResult] = await Promise.all([
+    postgresManagerResult.data.execute(dataQuery, params),
+    postgresManagerResult.data.execute(countQuery, params.slice(0, -2)),
+  ]);
+
+  if (!dataResult.success) return dataResult;
+  if (!countResult.success) return countResult;
+
+  const parsedItems = z
+    .array(ApplicationSchema)
+    .safeParse(dataResult.data.rows ?? []);
+
+  if (!parsedItems.success) {
+    return errResult(new Error("Schema validation failed"));
+  }
+
+  return okResult({
+    items: parsedItems.data,
+    total: countResult.data.rows[0].total,
+  });
+}
+
+export async function addApplication(
+  input: z.infer<typeof AddApplicationSchema> & { revalidatePath?: string }
+): Promise<Result<{ application_id: string }>> {
   const postgresManagerResult = await getPostgresDatabaseManager(null);
   if (!postgresManagerResult.success) return postgresManagerResult;
 
   const parsed = AddApplicationSchema.safeParse(input);
-  if (!parsed.success) return errResult(new Error("Invalid input: " + JSON.stringify(parsed.error.format())));
+  if (!parsed.success)
+    return errResult(
+      new Error("Invalid input: " + JSON.stringify(parsed.error.format()))
+    );
 
   const data = parsed.data;
   let companyId = "";
   const findCompanyQuery = `SELECT id FROM companies WHERE user_id = $1 AND name = $2`;
-  const findRes = await postgresManagerResult.data.execute(findCompanyQuery, [data.user_id, data.company_name]);
+  const findRes = await postgresManagerResult.data.execute(findCompanyQuery, [
+    data.user_id,
+    data.company_name,
+  ]);
 
   if (!findRes.success) return findRes;
 
@@ -41,7 +126,10 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
             VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING id
         `;
-    const createRes = await postgresManagerResult.data.execute(createCompanyQuery, [data.user_id, data.company_name]);
+    const createRes = await postgresManagerResult.data.execute(
+      createCompanyQuery,
+      [data.user_id, data.company_name]
+    );
     if (!createRes.success) return createRes;
     companyId = createRes.data.rows[0].id;
   }
@@ -64,7 +152,7 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
     data.source || null,
     data.priority,
     data.status,
-    data.general_notes || null
+    data.general_notes || null,
   ]);
 
   if (!appResult.success) return appResult;
@@ -85,26 +173,20 @@ export async function addApplication(input: z.infer<typeof AddApplicationSchema>
   return okResult({ application_id: appId });
 }
 
-const DeleteAppSchema = z.object({
-  application_id: z.string().uuid(),
-  user_id: z.string().uuid(),
-});
-
-export async function deleteApplication(input: z.infer<typeof DeleteAppSchema>): Promise<Result<{ success: boolean }>> {
+export async function deleteApplication(input: {
+  application_id: string;
+  user_id: string;
+}): Promise<Result<{ success: boolean }>> {
   const postgresManagerResult = await getPostgresDatabaseManager(null);
   if (!postgresManagerResult.success) return postgresManagerResult;
-
-  const parsed = DeleteAppSchema.safeParse(input);
-  if (!parsed.success) return errResult(new Error("Invalid input"));
-
-  const { application_id, user_id } = parsed.data;
-
   const query = `
     DELETE FROM applications 
     WHERE id = $1 AND user_id = $2
   `;
-
-  const result = await postgresManagerResult.data.execute(query, [application_id, user_id]);
+  const result = await postgresManagerResult.data.execute(query, [
+    input.application_id,
+    input.user_id,
+  ]);
 
   if (!result.success) return result;
 
@@ -115,46 +197,43 @@ export async function deleteApplication(input: z.infer<typeof DeleteAppSchema>):
   return okResult({ success: true });
 }
 
-const UpdateAppSchema = z.object({
-  user_id: z.string().uuid(),
-  application_id: z.string().uuid(),
-  role_title: z.string().optional(),
-  job_link: z.string().optional(),
-  status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).optional(),
-  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
-  general_notes: z.string().optional().nullable(),
-});
-
-export async function updateApplication(input: z.infer<typeof UpdateAppSchema> & { revalidatePath?: string }): Promise<Result<{ success: boolean }>> {
+export async function updateApplication(
+  input: z.infer<typeof UpdateApplicationSchema> & { revalidatePath?: string }
+): Promise<Result<{ success: boolean }>> {
   const postgresManagerResult = await getPostgresDatabaseManager(null);
   if (!postgresManagerResult.success) return postgresManagerResult;
 
-  const parsed = UpdateAppSchema.safeParse(input);
+  const parsed = UpdateApplicationSchema.safeParse(input);
   if (!parsed.success) return errResult(new Error(parsed.error.message));
   const data = parsed.data;
 
-  // 1. If Status is changing, we need to log history FIRST
   if (data.status) {
-    // Get current status
     const currentStatusQuery = `SELECT status FROM applications WHERE id = $1 AND user_id = $2`;
-    const statusResult = await postgresManagerResult.data.execute(currentStatusQuery, [data.application_id, data.user_id]);
+    const statusResult = await postgresManagerResult.data.execute(
+      currentStatusQuery,
+      [data.id, data.user_id]
+    );
 
-    if (statusResult.success && statusResult.data.rows && statusResult.data.rows.length > 0) {
+    if (
+      statusResult.success &&
+      statusResult.data.rows &&
+      statusResult.data.rows.length > 0
+    ) {
       const currentStatus = statusResult.data.rows[0].status;
-
-      // Only insert history if status is actually different
       if (currentStatus !== data.status) {
         const historyQuery = `
           INSERT INTO application_history (id, job_application_id, previous_status, new_status, notes)
           VALUES (gen_random_uuid(), $1, $2, $3, 'Status updated via dashboard')
         `;
-        // We await this but continue even if it fails (non-blocking)
-        await postgresManagerResult.data.execute(historyQuery, [data.application_id, currentStatus, data.status]);
+        await postgresManagerResult.data.execute(historyQuery, [
+          data.id,
+          currentStatus,
+          data.status,
+        ]);
       }
     }
   }
 
-  // 2. Update the Application Record
   const updateQuery = `
     UPDATE applications
     SET 
@@ -168,79 +247,45 @@ export async function updateApplication(input: z.infer<typeof UpdateAppSchema> &
   `;
 
   const result = await postgresManagerResult.data.execute(updateQuery, [
-    data.application_id,
+    data.id,
     data.user_id,
     data.role_title ?? null,
     data.job_link ?? null,
     data.status ?? null,
     data.priority ?? null,
-    data.general_notes ?? null
+    data.general_notes ?? null,
   ]);
 
   if (!result.success) return result;
-  if ((result.data.rowCount ?? 0) === 0) return errResult(new Error("Application not found"));
+  if ((result.data.rowCount ?? 0) === 0)
+    return errResult(new Error("Application not found"));
   if (input.revalidatePath) {
     revalidatePath(input.revalidatePath);
   }
   return okResult({ success: true });
 }
 
-const ApplicationDetailSchema = z.object({
-  application: z.object({
-    id: z.string(),
-    role_title: z.string(),
-    company_name: z.string(),
-    company_location: z.string().nullable(),
-    job_link: z.string().nullable(),
-    status: z.enum([
-      'APPLIED',
-      'SHORTLISTED',
-      'INTERVIEWING',
-      'OFFER',
-      'REJECTED',
-      'WITHDRAWN'
-    ]),
-    priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).nullable(),
-    general_notes: z.string().nullable(),
-    applied_date: z.date(),
-    updated_at: z.date(),
-  }),
-  history: z.array(z.object({
-    id: z.string(),
-    new_status: z.string(),
-    notes: z.string().nullable(),
-    changed_at: z.date(),
-  })),
-  rounds: z.array(z.object({
-    id: z.string(),
-    round_number: z.number(),
-    round_type: z.string(),
-    interview_date: z.date().nullable(),
-    interviewer_name: z.string().nullable(),
-    meeting_link: z.string().nullable(),
-    result: z.enum(['PASSED', 'FAILED', 'PENDING', 'SKIPPED']),
-    questions_asked: z.string().nullable(),
-    feedback_received: z.string().nullable(),
-    personal_notes: z.string().nullable(),
-    created_at: z.date(),
-    updated_at: z.date(),
-  }))
-});
-
-export async function getApplicationDetails(userId: string, applicationId: string) {
+export async function getApplicationWithRoundsById(
+  userId: string,
+  applicationId: string
+): Promise<Result<z.infer<typeof ApplicationWithRoundsSchema>>> {
   const dbResult = await getPostgresDatabaseManager(null);
   if (!dbResult.success) return dbResult;
   const appQuery = `
     SELECT 
       a.id,
-      a.role_title,
+      a.user_id,
+      c.id AS company_id,
       c.name AS company_name,
       c.location AS company_location,
+      a.role_title,
       a.job_link,
+      a.source,
       a.status,
       a.priority,
       a.general_notes,
       a.applied_date,
+      a.created_at,
       a.updated_at
     FROM applications a
     JOIN companies c ON a.company_id = c.id
@@ -255,6 +300,8 @@ export async function getApplicationDetails(userId: string, applicationId: strin
   const historyQuery = `
     SELECT 
       id,
+      job_application_id,
+      previous_status,
       new_status,
       notes,
       changed_at
@@ -268,6 +315,7 @@ export async function getApplicationDetails(userId: string, applicationId: strin
   const roundsQuery = `
     SELECT
       id,
+      job_application_id AS application_id,
       round_number,
       round_type,
       interview_date,
@@ -286,99 +334,20 @@ export async function getApplicationDetails(userId: string, applicationId: strin
   const roundsRes = await dbResult.data.execute(roundsQuery, [applicationId]);
   if (!roundsRes.success) return roundsRes;
 
-  // 4️⃣ Final response
   const rawData = {
     application: appRes.data.rows[0],
     history: histRes.data.rows || [],
     rounds: roundsRes.data.rows || [],
   };
 
-  return okResult(rawData);
+  const parsed = ApplicationWithRoundsSchema.safeParse(rawData);
+  if (!parsed.success) {
+    console.log(parsed.error);
+    return errResult(new Error("Detail schema validation failed"));
+  }
+
+  return okResult(parsed.data);
 }
-
-// --- 2. UPDATE APPLICATION ---
-
-// const UpdateAppInputSchema = z.object({
-//     application_id: z.string().uuid(),
-//     user_id: z.string().uuid(),
-//     role_title: z.string().optional(),
-//     job_link: z.string().optional().nullable(),
-//     general_notes: z.string().optional().nullable(),
-//     status: z.enum(['APPLIED', 'SHORTLISTED', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN']).optional(),
-//     priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
-// });
-
-// export async function updateApplication(input: z.infer<typeof UpdateAppInputSchema>) {
-//     const dbResult = await getPostgresDatabaseManager(null);
-//     if (!dbResult.success) return dbResult;
-
-//     const parsed = UpdateAppInputSchema.safeParse(input);
-//     if (!parsed.success) return errResult(new Error("Invalid input"));
-//     const data = parsed.data;
-
-//     // 1. If Status Changed -> Log History
-//     if (data.status) {
-//         const currentQuery = `SELECT status FROM applications WHERE id = $1 AND user_id = $2`;
-//         const currentRes = await dbResult.data.execute(currentQuery, [data.application_id, data.user_id]);
-
-//         if (currentRes.success && currentRes.data.rows.length > 0) {
-//             const oldStatus = currentRes.data.rows[0].status;
-//             if (oldStatus !== data.status) {
-//                 const histQuery = `
-//                     INSERT INTO application_history (id, job_application_id, previous_status, new_status, notes)
-//                     VALUES (gen_random_uuid(), $1, $2, $3, 'Status updated via details page')
-//                 `;
-//                 await dbResult.data.execute(histQuery, [data.application_id, oldStatus, data.status]);
-//             }
-//         }
-//     }
-
-//     // 2. Update Fields (Only updates fields that are not undefined)
-//     // We use COALESCE to keep existing values if the input is undefined
-//     // Note: for strings, if we want to allow clearing them (setting to null), we need to handle that.
-//     // Here we assume undefined = no change.
-
-//     const updateQuery = `
-//         UPDATE applications SET
-//             role_title = COALESCE($3, role_title),
-//             job_link = COALESCE($4, job_link),
-//             general_notes = COALESCE($5, general_notes),
-//             status = COALESCE($6, status),
-//             priority = COALESCE($7, priority),
-//             updated_at = CURRENT_TIMESTAMP
-//         WHERE id = $1 AND user_id = $2
-//     `;
-
-//     // Note: We pass 'undefined' as null to postgres parameter array usually, but COALESCE($x, col) works if $x is NULL.
-//     // So we need to ensure 'undefined' becomes 'null' in the array passed to execute.
-//     const params = [
-//         data.application_id,
-//         data.user_id,
-//         data.role_title ?? null,
-//         data.job_link ?? null,
-//         data.general_notes ?? null,
-//         data.status ?? null,
-//         data.priority ?? null
-//     ];
-
-//     const result = await dbResult.data.execute(updateQuery, params);
-//     if (!result.success) return result;
-
-//     return okResult({ success: true });
-// }
-
-
-const AnalyticsDataSchema = z.object({
-  dailyTrend: z.array(z.object({
-    date: z.string(), // Format YYYY-MM-DD
-    count: z.number(),
-  })),
-  statusDistribution: z.array(z.object({
-    name: z.string(),
-    value: z.number(),
-    color: z.string(),
-  })),
-});
 
 export async function getAnalyticsData(
   userId: string,
@@ -387,67 +356,66 @@ export async function getAnalyticsData(
 ): Promise<Result<z.infer<typeof AnalyticsDataSchema>>> {
   const dbResult = await getPostgresDatabaseManager(null);
   if (!dbResult.success) return dbResult;
-
-  // 1. Get Daily Trend (Group by applied_date)
-  // We use ::date to ensure we ignore time components if they exist
   const trendQuery = `
-    SELECT 
-      applied_date::text as date, 
-      COUNT(*)::int as count 
-    FROM applications 
-    WHERE user_id = $1 
-      AND applied_date >= $2 
-      AND applied_date <= $3
-    GROUP BY applied_date
-    ORDER BY applied_date ASC
-  `;
+        SELECT 
+          applied_date::text as date, 
+          COUNT(*)::int as count 
+        FROM applications 
+        WHERE user_id = $1 
+          AND applied_date >= $2 
+          AND applied_date <= $3
+        GROUP BY applied_date
+        ORDER BY applied_date ASC
+      `;
 
-  // 2. Get Status Distribution (Group by status)
   const statusQuery = `
-    SELECT status, COUNT(*)::int as count 
-    FROM applications 
-    WHERE user_id = $1
-    GROUP BY status
-  `;
+        SELECT status, COUNT(*)::int as count 
+        FROM applications 
+        WHERE user_id = $1
+        GROUP BY status
+      `;
 
   const [trendRes, statusRes] = await Promise.all([
     dbResult.data.execute(trendQuery, [userId, startDate, endDate]),
-    dbResult.data.execute(statusQuery, [userId])
+    dbResult.data.execute(statusQuery, [userId]),
   ]);
 
   if (!trendRes.success) return trendRes;
   if (!statusRes.success) return statusRes;
 
-  // --- Process Daily Trend (Fill in missing days with 0) ---
   const rawTrend = trendRes.data.rows as { date: string; count: number }[];
   const filledTrend = [];
 
-  // Loop through every day in range to ensure the graph doesn't have gaps
+
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const dateStr = d.toISOString().split('T')[0];
-    const found = rawTrend.find(r => r.date === dateStr);
+    const dateStr = d.toISOString().split("T")[0];
+    const found = rawTrend.find((r) => r.date === dateStr);
     filledTrend.push({
       date: dateStr,
-      count: found ? Number(found.count) : 0
+      count: found ? Number(found.count) : 0,
     });
   }
   const statusColors: Record<string, string> = {
-    'APPLIED': 'gray.5',
-    'SHORTLISTED': 'violet.5',
-    'INTERVIEWING': 'blue.5',
-    'OFFER': 'green.5',
-    'REJECTED': 'red.5',
-    'WITHDRAWN': 'dark.3'
+    APPLIED: "gray.5",
+    SHORTLISTED: "violet.5",
+    INTERVIEWING: "blue.5",
+    OFFER: "green.5",
+    REJECTED: "red.5",
+    WITHDRAWN: "dark.3",
   };
 
-  const formattedStatus = (statusRes.data.rows as { status: string; count: number }[]).map(row => ({
-    name: row.status.charAt(0) + row.status.slice(1).toLowerCase(), // Capitalize
+  const formattedStatus = (
+    statusRes.data.rows as { status: string; count: number }[]
+  ).map((row) => ({
+    name: row.status.charAt(0) + row.status.slice(1).toLowerCase(),
     value: Number(row.count),
-    color: statusColors[row.status] || 'gray.5'
+    color: statusColors[row.status] || "gray.5",
   }));
+
+  console.log(formattedStatus)
 
   return okResult({
     dailyTrend: filledTrend,
-    statusDistribution: formattedStatus
+    statusDistribution: formattedStatus,
   });
 }

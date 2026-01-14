@@ -1,7 +1,8 @@
-import { getKanbanBoardData } from "@/lib/backend/user";
+
 import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { AddApplicationModal } from "@/components/ApplicationModal";
 import { SearchInput } from "@/components/SearchInput";
+import { getApplicationsForUser } from "@/lib/backend/application";
 
 type PageProps = {
   searchParams: Promise<{
@@ -18,7 +19,7 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
   const page = Number(params.page ?? "1");
   const limit = Number(params.limit ?? "5");
 
-  const result = await getKanbanBoardData(userId, {
+  const result = await getApplicationsForUser(userId, {
     search,
     page,
     limit,
@@ -39,7 +40,6 @@ export default async function ApplicationsPage({ searchParams }: PageProps) {
           <AddApplicationModal />
         </div>
         <SearchInput defaultValue={search} />
-
         {result.success ? (
           <ApplicationsTable
             data={result.data.items}

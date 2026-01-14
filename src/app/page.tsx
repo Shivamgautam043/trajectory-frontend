@@ -4,9 +4,8 @@ import { AddApplicationModal } from "@/components/ApplicationModal";
 import { DashboardStats } from "@/components/dashboardStats";
 import { GoalTracker } from "@/components/GoalTracker";
 import { SpotlightSection } from "@/components/SpotlightSection";
-import { getAnalyticsData } from "@/lib/backend/application";
-import { getDashboardStats, getKanbanBoardData } from "@/lib/backend/user";
-
+import { getAnalyticsData, getApplicationsForUser } from "@/lib/backend/application";
+import { getDashboardStats } from "@/lib/backend/data";
 
 export default async function Home() {
     const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891";
@@ -16,7 +15,7 @@ export default async function Home() {
 
     const [statsResult, applicationsResult, analyticsResult] = await Promise.all([
         getDashboardStats(userId),
-        getKanbanBoardData(userId, {
+        getApplicationsForUser(userId, {
             search: "",
             page: 1,
             limit: 100,
@@ -30,6 +29,7 @@ export default async function Home() {
         : null;
     const applicationsToday = todayStats ? todayStats.count : 0;
     const allApps = applicationsResult.success ? applicationsResult.data.items : [];
+
     const spotlightApps = allApps.filter(app =>
         app.priority === 'HIGH' || app.status === 'INTERVIEWING' || app.status === 'OFFER'
     ).slice(0, 3);
@@ -50,7 +50,8 @@ export default async function Home() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-5xl mx-auto mb-4">
                     <div className="lg:col-span-2 space-y-8">
-                        {statsResult.success && <DashboardStats stats={statsResult.data} />}
+                        {statsResult.success && 
+                        <DashboardStats stats={statsResult.data} />}
                         {analyticsResult.success && (
                             <AnalyticsSection
                                 dailyTrend={weeklyTrend}
@@ -58,7 +59,6 @@ export default async function Home() {
                             />
                         )}
                     </div>
-
                     <div className="h-full flex flex-col">
                         <GoalTracker count={applicationsToday} />
                     </div>

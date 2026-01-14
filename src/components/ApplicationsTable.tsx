@@ -1,17 +1,8 @@
 "use client";
+import { Application } from "@/utilities/types";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import { PaginationFooter } from "./PaginationFooter";
-type Application = {
-  application_id: string;
-  company_name: string;
-  company_location: string | null;
-  role_title: string;
-  status: "APPLIED" | "SHORTLISTED" | "INTERVIEWING" | "OFFER" | "REJECTED" | "WITHDRAWN";
-  priority: "HIGH" | "MEDIUM" | "LOW" | null;
-  applied_date: Date;
-  updated_at: Date;
-};
+
 
 const getStatusStyles = (status: string) => {
   switch (status) {
@@ -31,12 +22,12 @@ const getStatusStyles = (status: string) => {
 };
 
 const getPriorityStyles = (priority: string | null) => {
-    if (priority === "HIGH") return "text-red-600 dark:text-red-400 font-medium";
-    if (priority === "MEDIUM") return "text-orange-600 dark:text-orange-400";
-    return "text-zinc-500 dark:text-zinc-500";
+  if (priority === "HIGH") return "text-red-600 dark:text-red-400 font-medium";
+  if (priority === "MEDIUM") return "text-orange-600 dark:text-orange-400";
+  return "text-zinc-500 dark:text-zinc-500";
 };
 
-export function ApplicationsTable({ data ,total,page,limit}: { data: Application[] ,total:number,page:number,limit:number}) {
+export function ApplicationsTable({ data, total, page, limit }: { data: (Application)[], total: number, page: number, limit: number }) {
   const router = useRouter();
 
   if (data.length === 0) {
@@ -63,8 +54,8 @@ export function ApplicationsTable({ data ,total,page,limit}: { data: Application
         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {data.map((app) => (
             <tr
-              key={app.application_id}
-              onClick={() => router.push(`/applications/${app.application_id}`)}
+              key={app.id}
+              onClick={() => router.push(`/applications/${app.id}`)}
               className="group cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
             >
               <td className="px-6 py-4">
@@ -92,9 +83,9 @@ export function ApplicationsTable({ data ,total,page,limit}: { data: Application
                 </span>
               </td>
               <td className="px-6 py-4">
-                 <span className={`text-xs ${getPriorityStyles(app.priority)}`}>
-                    {app.priority || "-"}
-                 </span>
+                <span className={`text-xs ${getPriorityStyles(app.priority)}`}>
+                  {app.priority || "-"}
+                </span>
               </td>
               <td className="px-6 py-4 text-right text-zinc-500 dark:text-zinc-400">
                 {new Date(app.applied_date).toLocaleDateString("en-US", {
@@ -107,7 +98,7 @@ export function ApplicationsTable({ data ,total,page,limit}: { data: Application
           ))}
         </tbody>
       </table>
-       <PaginationFooter total={total} page={page} limit={limit} />
+      <PaginationFooter total={total} page={page} limit={limit} />
     </div>
   );
 }

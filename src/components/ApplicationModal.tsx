@@ -15,7 +15,6 @@ export function AddApplicationModal() {
         setIsLoading(true);
 
         const formData = new FormData(event.currentTarget);
-
         const companyName = formData.get("companyName") as string;
         const roleTitle = formData.get("roleTitle") as string;
         const jobLink = formData.get("jobLink") as string;
@@ -28,7 +27,7 @@ export function AddApplicationModal() {
             | "WITHDRAWN";
 
         const result = await addApplication({
-            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891", // TODO: Replace with dynamic user ID later
+            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891",
             company_name: companyName,
             role_title: roleTitle,
             job_link: jobLink,
@@ -131,7 +130,6 @@ export function AddApplicationModal() {
                                     </select>
                                 </div>
 
-                                {/* Priority */}
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                         Priority

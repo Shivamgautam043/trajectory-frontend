@@ -1,61 +1,32 @@
 'use client';
-
-// Make sure to import your actual backend functions here
-import { updateApplication } from "@/lib/backend/application"; 
+import { updateApplication } from "@/lib/backend/application";
 import { addInterviewRound, deleteInterviewRound } from "@/lib/backend/interviewRound";
-
-
-import { Clock, ExternalLink, Loader2, Save, Pencil, Trash2, Plus, X } from "lucide-react";
+import { Application, ApplicationHistoryItem, InterviewRound } from "@/utilities/types";
+import { Clock, ExternalLink, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "react-toastify";
 
-// Types (Kept as provided)
-type HistoryItem = {
-    id: string;
-    new_status: string;
-    notes: string | null;
-    changed_at: string;
-    interview_date: string;
-};
 
-type InterviewRound = {
-    id: string;
-    round_number: number;
-    round_type: string;
-    interview_date: string | null;
-    interviewer_name: string | null;
-    meeting_link: string | null;
-    result: 'PASSED' | 'FAILED' | 'PENDING' | 'SKIPPED';
-    personal_notes: string | null;
-    created_at: string;
-};
-
-type Props = {
-    app: any;
-    history: HistoryItem[];
+export function ApplicationDetailsView({ app, history, rounds }: {
+    app: Application;
+    history: ApplicationHistoryItem[];
     rounds: InterviewRound[];
-};
-
-export function ApplicationDetailsView({ app, history, rounds }: Props) {
+}) {
     const [isSaving, setIsSaving] = useState(false);
-    
-    // New states for Round Management
     const [isEditingRounds, setIsEditingRounds] = useState(false);
     const [isAddingRound, setIsAddingRound] = useState(false);
     const [deletingRoundId, setDeletingRoundId] = useState<string | null>(null);
-
     const formRef = useRef<HTMLFormElement>(null);
     const roundFormRef = useRef<HTMLFormElement>(null);
     const pathname = usePathname();
     const router = useRouter();
 
-    // Existing Update Handler
     async function handleUpdate(formData: FormData) {
         setIsSaving(true);
         const payload = {
-            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891", // Assuming static for now as per your code
-            application_id: app.id,
+            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891",
+            id: app.id,
             role_title: formData.get("role_title")?.toString() as string,
             job_link: formData.get("job_link")?.toString() as string,
             general_notes: formData.get("general_notes")?.toString() as string,
@@ -74,14 +45,13 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
         }
     }
 
-    // New: Handle Delete Round
     async function handleDeleteRound(roundId: string) {
         if (!confirm("Are you sure you want to delete this round?")) return;
-        
+
         setDeletingRoundId(roundId);
         const result = await deleteInterviewRound({
             round_id: roundId,
-            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891" // Using same ID as your update logic
+            user_id: "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891"
         });
         setDeletingRoundId(null);
 
@@ -93,12 +63,9 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
         }
     }
 
-    // New: Handle Add Round
     async function handleAddRound(formData: FormData) {
         setIsAddingRound(true);
-        
         const dateStr = formData.get("interview_date")?.toString();
-
         const payload = {
             job_application_id: app.id,
             round_number: parseInt(formData.get("round_number")?.toString() || "1"),
@@ -123,8 +90,6 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
     return (
         <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="relative lg:col-span-2 space-y-6">
-                
-                {/* Header Card */}
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <form
                         id="application-form"
@@ -156,7 +121,6 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                     </form>
                 </div>
 
-                {/* Notes Card */}
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                         General Notes
@@ -171,15 +135,13 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                     />
                 </div>
 
-                {/* Interview Rounds Card (MODIFIED) */}
                 <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                             Interview Rounds
                         </h3>
-                        
-                        {/* Edit Toggle Button */}
-                        <button 
+
+                        <button
                             onClick={() => setIsEditingRounds(!isEditingRounds)}
                             className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
                         >
@@ -218,15 +180,14 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                                             </p>
                                         )}
                                         {round.meeting_link && (
-                                           <a href={round.meeting_link} target="_blank" className="text-xs text-blue-500 hover:underline block mt-0.5">
-                                               Meeting Link
-                                           </a> 
+                                            <a href={round.meeting_link} target="_blank" className="text-xs text-blue-500 hover:underline block mt-0.5">
+                                                Meeting Link
+                                            </a>
                                         )}
                                     </div>
 
-                                    {/* Delete Option (Visible in Edit Mode) */}
                                     {isEditingRounds && (
-                                        <button 
+                                        <button
                                             onClick={() => handleDeleteRound(round.id)}
                                             disabled={deletingRoundId === round.id}
                                             className="p-1.5 rounded-md text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 transition-all"
@@ -240,7 +201,6 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                                     )}
                                 </div>
 
-                                {/* Status Badges */}
                                 <span
                                     className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium
                                     ${round.result === 'PASSED' && 'bg-green-100 text-green-700'}
@@ -260,63 +220,62 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                             </div>
                         ))}
 
-                        {/* Add New Round Form (Visible in Edit Mode) */}
                         {isEditingRounds && (
                             <div className="relative pt-4 mt-4 border-t border-zinc-100 dark:border-zinc-800">
                                 <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">Add New Round</h4>
-                                <form 
+                                <form
                                     ref={roundFormRef}
                                     action={handleAddRound}
                                     className="grid grid-cols-1 md:grid-cols-2 gap-3"
                                 >
                                     <div className="col-span-1">
-                                        <input 
-                                            name="round_type" 
-                                            required 
-                                            placeholder="Type (e.g. Technical, HR)" 
+                                        <input
+                                            name="round_type"
+                                            required
+                                            placeholder="Type (e.g. Technical, HR)"
                                             className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-black dark:text-white"
                                         />
                                     </div>
                                     <div className="col-span-1">
-                                        <input 
-                                            name="round_number" 
-                                            type="number" 
+                                        <input
+                                            name="round_number"
+                                            type="number"
                                             defaultValue={rounds.length + 1}
-                                            required 
-                                            placeholder="Round No." 
+                                            required
+                                            placeholder="Round No."
                                             className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-black dark:text-white"
                                         />
                                     </div>
                                     <div className="col-span-1">
-                                        <input 
-                                            name="interviewer_name" 
-                                            placeholder="Interviewer Name" 
+                                        <input
+                                            name="interviewer_name"
+                                            placeholder="Interviewer Name"
                                             className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-black dark:text-white"
                                         />
                                     </div>
                                     <div className="col-span-1">
-                                        <input 
-                                            name="interview_date" 
+                                        <input
+                                            name="interview_date"
                                             type="datetime-local"
                                             className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-black dark:text-white text-zinc-500"
                                         />
                                     </div>
                                     <div className="col-span-2">
-                                        <input 
-                                            name="meeting_link" 
+                                        <input
+                                            name="meeting_link"
                                             type="url"
-                                            placeholder="Meeting Link (Optional)" 
+                                            placeholder="Meeting Link (Optional)"
                                             className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-black dark:text-white"
                                         />
                                     </div>
-                                    
+
                                     <div className="col-span-2 flex justify-end">
                                         <button
                                             type="submit"
                                             disabled={isAddingRound}
                                             className="flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
                                         >
-                                            {isAddingRound ? <Loader2 size={12} className="animate-spin"/> : <Plus size={12} />}
+                                            {isAddingRound ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                                             Add Round
                                         </button>
                                     </div>
@@ -327,7 +286,6 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                 </div>
             </div>
 
-            {/* Sidebar (Status & History) - Unchanged Logic */}
             <div className="space-y-6">
                 <div className="grid grid-cols-1 w-full place-items-end place-content-end">
                     <button
@@ -406,7 +364,7 @@ export function ApplicationDetailsView({ app, history, rounds }: Props) {
                                 <p className="text-xs text-zinc-500 mt-0.5">
                                     {new Date(item.changed_at).toLocaleDateString("en-IN")}
                                 </p>
-                                
+
                                 {item.notes && (
                                     <p className="mt-1 text-xs text-zinc-500 italic dark:text-zinc-600">
                                         "{item.notes}"

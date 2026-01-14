@@ -1,14 +1,14 @@
 
 import { ApplicationDetailsView } from "@/components/ApplicationDetailsView";
-import Link from "next/link";
+import { getApplicationWithRoundsById } from "@/lib/backend/application";
 import { ArrowLeft } from "lucide-react";
-import { getApplicationDetails } from "@/lib/backend/application";
+import Link from "next/link";
 
 export default async function ApplicationDetailPage({ params }: { params: { applicationId: string } }) {
     const { applicationId } = await params;
-    const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891"; // Hardcoded for now
+    const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891";
 
-    const result = await getApplicationDetails(userId, applicationId);
+    const result = await getApplicationWithRoundsById(userId, applicationId);
 
     if (!result.success) {
         return (

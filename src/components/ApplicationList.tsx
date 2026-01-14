@@ -1,14 +1,8 @@
+import { Application } from '@/utilities/types';
 import { ApplicationCard } from './ApplicationCard';
 
 type ListProps = {
-  applications: Array<{
-    application_id: string;
-    company_name: string;
-    role_title: string;
-    status: any;
-    priority: any;
-    updated_at: Date;
-  }>
+  applications: Array<Application>
 };
 
 export function ApplicationList({ applications }: ListProps) {
@@ -23,7 +17,7 @@ export function ApplicationList({ applications }: ListProps) {
   return (
     <div className="mt-12 grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
       {applications.map((app) => (
-        <ApplicationCard key={app.application_id} app={app} />
+        <ApplicationCard key={app.id} app={app} />
       ))}
     </div>
   );

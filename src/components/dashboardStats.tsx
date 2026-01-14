@@ -1,8 +1,8 @@
 type StatsProps = {
-  total_applications: string;
-  active_interviews: string;
-  offers: string;
-  rejections: string;
+  total_applications: number;
+  active_interviews: number;
+  offers: number;
+  rejections: number;
 };
 
 export function DashboardStats({ stats }: { stats: StatsProps }) {
