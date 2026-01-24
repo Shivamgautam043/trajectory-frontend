@@ -27,6 +27,7 @@ export function AnalyticsSection({ dailyTrend, statusDistribution }: Props) {
           withDots={true}
           withGradient={true}
           className="text-zinc-500"
+      
         />
       </div>
 

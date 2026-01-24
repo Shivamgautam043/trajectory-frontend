@@ -412,8 +412,6 @@ export async function getAnalyticsData(
     color: statusColors[row.status] || "gray.5",
   }));
 
-  console.log(formattedStatus)
-
   return okResult({
     dailyTrend: filledTrend,
     statusDistribution: formattedStatus,
