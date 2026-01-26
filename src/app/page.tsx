@@ -8,7 +8,7 @@ import { getAnalyticsData, getApplicationsForUser } from "@/lib/backend/applicat
 import { getDashboardStats } from "@/lib/backend/data";
 
 export default async function Home() {
-    const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891";
+    const userId = "3f6d9a1e-2b45-4e91-9c2d-8f7a1b2c4d90";
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - 10);

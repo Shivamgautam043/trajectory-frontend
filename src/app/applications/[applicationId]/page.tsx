@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default async function ApplicationDetailPage({ params }: { params: { applicationId: string } }) {
     const { applicationId } = await params;
-    const userId = "a1fcb8b1-2f90-4a64-9b1b-02dfbadc9891";
+    const userId = "3f6d9a1e-2b45-4e91-9c2d-8f7a1b2c4d90";
 
     const result = await getApplicationWithRoundsById(userId, applicationId);
 
