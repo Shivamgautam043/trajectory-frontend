@@ -1,3 +1,6 @@
 [submodule "submodules/submodule-database-manager-postgres"]
 	path = submodules/submodule-database-manager-postgres
 	url = https://github.com/Shivamgautam043/submodule-database-manager-postgres.git
+[submodule "submodules/bifrost-next-helper"]
+	path = submodules/bifrost-next-helper
+	url = https://github.com/Shivamgautam043/bifrost-next-helper

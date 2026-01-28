@@ -1,14 +1,14 @@
+import Header from "@/components/header";
+import { Sidebar } from "@/components/Sidebar";
+import { getUser } from "@/lib/backend/user";
+import "@mantine/charts/styles.css";
+import { MantineProvider } from "@mantine/core";
+import "@mantine/core/styles.css";
+import "@mantine/tiptap/styles.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Header from "@/components/header";
-import { getUser } from "@/lib/backend/user";
-import { Sidebar } from "@/components/Sidebar";
 import { ToastContainer } from "react-toastify";
-import { MantineProvider } from "@mantine/core";
-import '@mantine/core/styles.css';
-import '@mantine/charts/styles.css';
-import '@mantine/tiptap/styles.css';
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,21 +31,20 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const userResult = await getUser();
-
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased  bg-white dark:black`}
       >
         <ToastContainer />
-        <MantineProvider  defaultColorScheme="auto">
+        <MantineProvider defaultColorScheme="auto">
           <div className="flex flex-col h-screen">
-            <Header user={userResult.success === false ? null : userResult.data} />
+            <Header
+              user={userResult.success === false ? null : userResult.data}
+            />
             <div className="flex flex-1 overflow-hidden">
               <Sidebar />
-              <main className="flex-1 overflow-y-auto">
-                {children}
-              </main>
+              <main className="flex-1 overflow-y-auto">{children}</main>
             </div>
           </div>
         </MantineProvider>

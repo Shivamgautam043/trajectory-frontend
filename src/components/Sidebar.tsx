@@ -29,6 +29,7 @@ export function Sidebar() {
     const pathname = usePathname();
     return (
         <aside
+            id="sidebar"
             className={`relative flex flex-col h-screen bg-white dark:bg-black border-r border-zinc-200 dark:border-zinc-800 transition-all duration-300 ease-in-out ${isCollapsed ? "w-16" : "w-56"}`}
         >
             <button
